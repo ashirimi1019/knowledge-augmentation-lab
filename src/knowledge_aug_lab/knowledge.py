@@ -27,27 +27,56 @@ class KnowledgeGraph:
     """Small explainable graph for local KAG and GraphRAG demonstrations."""
 
     def __init__(self, triples: list[tuple[str, str, str]] | None = None) -> None:
+        if triples is not None and not isinstance(triples, list):
+            raise TypeError("triples must be a list")
         self._outgoing: dict[str, list[Fact]] = defaultdict(list)
         self._names: dict[str, str] = {}
         self._facts: list[Fact] = []
-        for subject, predicate, object_ in triples or []:
-            self.add(subject, predicate, object_)
+        self._fact_keys: set[tuple[str, str, str]] = set()
+        for triple in triples or []:
+            if not isinstance(triple, tuple) or len(triple) != 3:
+                raise ValueError("every triple must contain subject, predicate, and object")
+            self.add(*triple)
 
     def add(self, subject: str, predicate: str, object_: str) -> None:
-        fact = Fact(subject.strip(), predicate.strip(), object_.strip())
-        self._outgoing[subject.casefold()].append(fact)
+        values = {
+            "subject": subject,
+            "predicate": predicate,
+            "object": object_,
+        }
+        for name, value in values.items():
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{name} cannot be empty")
+
+        clean_subject = subject.strip()
+        clean_predicate = predicate.strip()
+        clean_object = object_.strip()
+        fact = Fact(clean_subject, clean_predicate, clean_object)
+        subject_key = clean_subject.casefold()
+        object_key = clean_object.casefold()
+        fact_key = (subject_key, clean_predicate.casefold(), object_key)
+        if fact_key in self._fact_keys:
+            return
+
+        self._outgoing[subject_key].append(fact)
         self._facts.append(fact)
-        self._names[subject.casefold()] = subject.strip()
-        self._names[object_.casefold()] = object_.strip()
+        self._fact_keys.add(fact_key)
+        self._names[subject_key] = clean_subject
+        self._names[object_key] = clean_object
 
     def entities(self) -> list[str]:
         return sorted(self._names.values(), key=str.casefold)
 
     def neighborhood(self, entity: str, max_hops: int = 2) -> list[Fact]:
+        if not isinstance(entity, str) or not entity.strip():
+            raise ValueError("entity cannot be empty")
+        if isinstance(max_hops, bool) or not isinstance(max_hops, int):
+            raise TypeError("max_hops must be an integer")
         if max_hops < 1:
             return []
-        queue: deque[tuple[str, int]] = deque([(entity.casefold(), 0)])
-        visited = {entity.casefold()}
+        entity_key = entity.strip().casefold()
+        queue: deque[tuple[str, int]] = deque([(entity_key, 0)])
+        visited = {entity_key}
         results: list[Fact] = []
         while queue:
             current, depth = queue.popleft()
@@ -63,6 +92,8 @@ class KnowledgeGraph:
         return results
 
     def match_entities(self, query: str) -> list[str]:
+        if not isinstance(query, str) or not query.strip():
+            raise ValueError("query cannot be empty")
         normalized = query.casefold()
         return [name for key, name in self._names.items() if key in normalized]
 
