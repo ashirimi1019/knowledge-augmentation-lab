@@ -34,16 +34,42 @@ def _freeze_value(value: Any) -> Any:
     """Recursively detach and freeze common metadata container types."""
 
     if isinstance(value, Mapping):
-        return FrozenMetadata({key: _freeze_value(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)):
-        return tuple(_freeze_value(item) for item in value)
+        return _freeze_mapping(value)
     if isinstance(value, (set, frozenset)):
         return frozenset(_freeze_value(item) for item in value)
-    return value
+    if isinstance(value, str):
+        return str(value)
+    if isinstance(value, bool):
+        return bool(value)
+    if isinstance(value, int):
+        return int(value)
+    if isinstance(value, float):
+        return float(value)
+    if isinstance(value, complex):
+        return complex(value)
+    if isinstance(value, bytes):
+        return bytes(value)
+    if value is None:
+        return None
+    if isinstance(value, Sequence):
+        return tuple(_freeze_value(item) for item in value)
+    raise TypeError(f"unsupported metadata value type: {type(value).__name__}")
+
+
+def _freeze_mapping(metadata: Mapping[Any, Any]) -> FrozenMetadata:
+    frozen: dict[str, Any] = {}
+    for key, value in metadata.items():
+        if not isinstance(key, str):
+            raise TypeError("metadata keys must be strings")
+        normalized_key = str(key)
+        if normalized_key in frozen:
+            raise ValueError(f"metadata keys collide after normalization: {normalized_key!r}")
+        frozen[normalized_key] = _freeze_value(value)
+    return FrozenMetadata(frozen)
 
 
 def _freeze_metadata(metadata: Mapping[str, Any]) -> Mapping[str, Any]:
-    return FrozenMetadata({key: _freeze_value(value) for key, value in metadata.items()})
+    return _freeze_mapping(metadata)
 
 
 @dataclass(frozen=True, slots=True)

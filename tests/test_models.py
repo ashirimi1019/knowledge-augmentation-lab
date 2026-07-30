@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from knowledge_aug_lab.models import AugmentationResult, Chunk, Document, RetrievalResult, TraceStep
+from knowledge_aug_lab.security import filter_authorized_documents
 
 
 def valid_chunk() -> Chunk:
@@ -33,6 +34,38 @@ class PerPassSequence(Sequence[Any]):
         value = self._values[min(self._passes, len(self._values) - 1)]
         self._passes += 1
         return iter((value,))
+
+
+class MutableString(str):
+    """A str subclass whose equality can change after model construction."""
+
+    enabled = False
+    __hash__ = str.__hash__
+
+    def __eq__(self, other: object) -> bool:
+        return self.enabled and str.__eq__(self, other)
+
+
+class MutableComplex(complex):
+    enabled = True
+
+    def __eq__(self, other: object) -> bool:
+        return self.enabled and complex.__eq__(self, other)
+
+
+class MutableMetadataSequence(Sequence[Any]):
+    def __init__(self, values: list[Any]) -> None:
+        self.values = values
+
+    def __len__(self) -> int:
+        return len(self.values)
+
+    def __getitem__(self, index: int) -> Any:
+        return self.values[index]
+
+
+class UnsupportedMutableLeaf:
+    pass
 
 
 @pytest.mark.parametrize("document_id", ["", "   ", 1, None])
@@ -69,6 +102,53 @@ def test_document_metadata_supports_standard_serialization() -> None:
     }
     assert asdict(document)["metadata"]["scopes"] == ("public",)
     assert pickle.loads(pickle.dumps(document)) == document
+
+
+def test_metadata_normalizes_mutable_string_subclasses_before_acl_checks() -> None:
+    scope = MutableString("public")
+    document = Document("doc", "text", {"scopes": [scope], "trusted": True})
+
+    stored_scope = document.metadata["scopes"][0]
+    assert type(stored_scope) is str
+    assert filter_authorized_documents([document], {"public"}) == [document]
+
+    scope.enabled = True
+    assert filter_authorized_documents([document], {"public"}) == [document]
+
+
+def test_metadata_normalizes_mutable_string_mapping_keys() -> None:
+    outer_key = MutableString("nested")
+    inner_key = MutableString("scopes")
+    document = Document("doc", "text", {outer_key: {inner_key: ["public"]}})
+
+    stored_outer_key = next(iter(document.metadata))
+    stored_inner_key = next(iter(document.metadata["nested"]))
+    assert type(stored_outer_key) is str
+    assert type(stored_inner_key) is str
+
+
+def test_metadata_snapshots_custom_sequences() -> None:
+    source = MutableMetadataSequence(["public"])
+    document = Document("doc", "text", {"scopes": source})
+    source.values.append("private")
+
+    assert document.metadata["scopes"] == ("public",)
+
+
+def test_metadata_normalizes_complex_subclasses() -> None:
+    source = MutableComplex(1, 2)
+    document = Document("doc", "text", {"value": source})
+    equivalent = Document("doc", "text", {"value": complex(1, 2)})
+
+    assert type(document.metadata["value"]) is complex
+    assert document == equivalent
+    source.enabled = False
+    assert document == equivalent
+
+
+def test_metadata_rejects_unsupported_mutable_leaf_values() -> None:
+    with pytest.raises(TypeError, match="unsupported metadata value type: UnsupportedMutableLeaf"):
+        Document("doc", "text", {"value": UnsupportedMutableLeaf()})
 
 
 @pytest.mark.parametrize(

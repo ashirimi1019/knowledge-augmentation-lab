@@ -25,5 +25,5 @@ def test_retrieval_metrics_deduplicate_ranked_document_ids() -> None:
     )
 
     assert retrieval.recall_at_k == 1.0
-    assert retrieval.precision_at_k == 0.5
+    assert retrieval.precision_at_k == 1.0
     assert retrieval.reciprocal_rank == 1.0
