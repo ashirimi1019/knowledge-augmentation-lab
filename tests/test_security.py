@@ -33,3 +33,11 @@ def test_request_scopes_require_a_collection_of_nonempty_strings() -> None:
 
     with pytest.raises(ValueError, match="request scopes must be a set of nonempty strings"):
         filter_authorized_documents([document], scopes="public")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("invalid", [None, 0, ""])
+def test_trusted_only_must_be_an_explicit_boolean(invalid: object) -> None:
+    document = Document("poison", "Untrusted source", {"scopes": ["public"], "trusted": False})
+
+    with pytest.raises(ValueError, match="trusted_only must be a bool"):
+        filter_authorized_documents([document], scopes={"public"}, trusted_only=invalid)  # type: ignore[arg-type]

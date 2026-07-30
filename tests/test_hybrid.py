@@ -1,4 +1,6 @@
-from knowledge_aug_lab.models import Document
+import pytest
+
+from knowledge_aug_lab.models import Chunk, Document
 from knowledge_aug_lab.retrieval import BM25Retriever, HybridRetriever, TfidfRetriever
 from knowledge_aug_lab.text import RecursiveChunker
 
@@ -21,3 +23,14 @@ def test_hybrid_rrf_combines_sparse_and_vector_space_rankings() -> None:
     assert {result.chunk.document_id for result in results} == {"exact", "semantic"}
     assert all(result.retriever == "hybrid-rrf" for result in results)
     assert [result.rank for result in results] == [1, 2]
+
+
+def test_hybrid_rejects_conflicting_chunks_with_the_same_id() -> None:
+    first = Chunk("shared#0", "first", "alpha from first source", 0, 23)
+    second = Chunk("shared#0", "second", "alpha from second source", 0, 24)
+    hybrid = HybridRetriever(
+        retrievers=[BM25Retriever().fit([first]), BM25Retriever().fit([second])],
+    )
+
+    with pytest.raises(ValueError, match="conflicting chunks share id 'shared#0'"):
+        hybrid.retrieve("alpha")

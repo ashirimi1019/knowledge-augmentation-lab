@@ -18,6 +18,8 @@ def filter_authorized_documents(
         not isinstance(scope, str) or not scope.strip() for scope in scopes
     ):
         raise ValueError("request scopes must be a set of nonempty strings")
+    if not isinstance(trusted_only, bool):
+        raise ValueError("trusted_only must be a bool")
 
     allowed: list[Document] = []
     for document in documents:

@@ -79,7 +79,7 @@ if page == "Concept map":
     cards = [
         (str(len(catalog)), "concepts mapped"),
         ("8", "executable paths"),
-        ("26", "behavior tests"),
+        ("30", "behavior tests"),
         ("0", "required API keys"),
     ]
     for column, (value, label) in zip(metrics, cards, strict=True):

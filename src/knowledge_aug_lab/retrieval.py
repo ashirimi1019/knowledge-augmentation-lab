@@ -147,6 +147,9 @@ class HybridRetriever:
             for result in retriever.retrieve(query, candidate_count):
                 if result.score <= 0:
                     continue
+                existing = chunks.get(result.chunk.id)
+                if existing is not None and existing != result.chunk:
+                    raise ValueError(f"conflicting chunks share id {result.chunk.id!r}")
                 scores[result.chunk.id] += weight / (self.rrf_k + result.rank)
                 chunks[result.chunk.id] = result.chunk
         ranked = sorted(scores, key=lambda chunk_id: (-scores[chunk_id], chunk_id))[:top_k]
