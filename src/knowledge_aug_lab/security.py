@@ -21,8 +21,14 @@ def filter_authorized_documents(
     if not isinstance(trusted_only, bool):
         raise ValueError("trusted_only must be a bool")
 
+    if not isinstance(documents, Iterable):
+        raise TypeError("documents must be an iterable of Document values")
+    document_snapshot = tuple(documents)
+    if any(not isinstance(document, Document) for document in document_snapshot):
+        raise TypeError("documents must contain only Document values")
+
     allowed: list[Document] = []
-    for document in documents:
+    for document in document_snapshot:
         if trusted_only and document.metadata.get("trusted") is not True:
             continue
         raw_scopes = document.metadata.get("scopes")
