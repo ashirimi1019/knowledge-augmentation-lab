@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="A rigorous, executable map of RAG, CAG, KAG, GraphRAG, table, memory, and tool augmentation.">
+  <title>Knowledge Augmentation Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#0d0d0d;--body:#3f4643;--muted:#707773;--green:#18e299;--deep:#0b8059;
+      --mint:#d4fae8;--line:rgba(13,13,13,.08);--soft:#f7f9f8;--white:#fff;--max:1180px}
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;color:var(--ink);background:#fff;
+      font-family:Inter,system-ui,sans-serif;line-height:1.55} a{color:inherit;text-decoration:none}
+    .nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.86);backdrop-filter:blur(18px);
+      border-bottom:1px solid var(--line)} .nav-inner{max-width:var(--max);margin:auto;height:68px;padding:0 24px;
+      display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font-weight:600}
+    .mark{width:30px;height:30px;border-radius:9px;background:var(--ink);color:var(--green);display:grid;place-items:center}
+    .nav-links{display:flex;align-items:center;gap:24px;font-size:14px;font-weight:500}.nav-links a:hover{color:var(--deep)}
+    .button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);
+      border-radius:999px;padding:10px 18px;font-size:14px;font-weight:500;background:#fff;transition:.2s}
+    .button:hover{transform:translateY(-1px);border-color:rgba(13,13,13,.18)}.button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+    .button.primary:hover{background:var(--deep);border-color:var(--deep)}
+    .hero{position:relative;overflow:hidden;padding:112px 24px 80px;text-align:center}
+    .hero:before{content:"";position:absolute;inset:-220px 10% auto;height:620px;z-index:-1;
+      background:radial-gradient(ellipse at center,rgba(24,226,153,.22),rgba(212,250,232,.13) 42%,transparent 72%)}
+    .eyebrow{display:inline-block;background:var(--mint);color:var(--deep);border-radius:999px;padding:6px 12px;
+      font:500 11px JetBrains Mono,monospace;letter-spacing:.09em;text-transform:uppercase}
+    h1{max-width:900px;margin:24px auto 20px;font-size:clamp(48px,7.2vw,86px);line-height:1.02;letter-spacing:-.062em;font-weight:600}
+    .hero p{max-width:720px;margin:0 auto;color:var(--muted);font-size:19px}.hero-actions{display:flex;gap:10px;justify-content:center;margin-top:32px}
+    .stats{max-width:var(--max);margin:0 auto;padding:0 24px 88px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .stat{border:1px solid var(--line);border-radius:18px;padding:22px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.025)}
+    .stat strong{font-size:34px;letter-spacing:-.05em;display:block}.stat span{font-size:13px;color:var(--muted)}
+    section{max-width:var(--max);margin:auto;padding:84px 24px}.section-label{font:500 11px JetBrains Mono,monospace;color:var(--deep);letter-spacing:.1em;text-transform:uppercase}
+    h2{font-size:clamp(34px,4vw,52px);line-height:1.08;letter-spacing:-.045em;margin:12px 0 16px;font-weight:600}
+    .section-copy{color:var(--muted);font-size:17px;max-width:690px;margin:0 0 34px}.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;align-items:stretch}
+    .node{position:relative;border:1px solid var(--line);border-radius:16px;padding:18px 16px;background:#fff;min-height:132px}
+    .node:not(:last-child):after{content:"→";position:absolute;right:-13px;top:48%;z-index:2;color:#99a09c;background:#fff;padding:0 3px}
+    .node .num{font:500 10px JetBrains Mono;color:var(--deep)}.node h3{font-size:15px;margin:20px 0 8px}.node p{font-size:12px;color:var(--muted);margin:0}
+    .map-section{background:linear-gradient(180deg,#fff,var(--soft) 12%,var(--soft) 88%,#fff)}.map-section>div{max-width:var(--max);margin:auto;padding:84px 24px}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:24px 0}.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;
+      font:500 12px Inter;cursor:pointer}.filter.active,.filter:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{border:1px solid var(--line);border-radius:18px;background:#fff;padding:22px;min-height:245px;transition:.2s}
+    .card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.05)}.card.hidden{display:none}.tag{display:inline-block;border-radius:999px;background:var(--mint);color:var(--deep);
+      padding:4px 8px;font:500 9px JetBrains Mono;letter-spacing:.05em;text-transform:uppercase}.card h3{font-size:20px;letter-spacing:-.025em;margin:20px 0 8px}
+    .card p{font-size:13px;color:var(--body);margin:0 0 18px}.trade{border-top:1px solid var(--line);padding-top:14px;color:var(--muted)!important}
+    .honesty{display:grid;grid-template-columns:1.05fr .95fr;gap:26px;align-items:center}.codebox{background:#0d0d0d;color:#e9efec;border-radius:22px;padding:26px;overflow:auto;
+      font:500 12px/1.8 JetBrains Mono,monospace;box-shadow:0 24px 64px rgba(0,0,0,.13)}.green{color:var(--green)}.gray{color:#87908c}
+    .checklist{display:grid;gap:10px}.check{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;gap:12px;font-size:14px}.tick{color:var(--deep);font-weight:600}
+    .cta{margin:70px auto 40px;max-width:var(--max);border-radius:28px;background:var(--ink);color:#fff;padding:64px;text-align:center;position:relative;overflow:hidden}
+    .cta:after{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(24,226,153,.13);right:-180px;top:-250px}
+    .cta h2{max-width:700px;margin:0 auto 16px}.cta p{color:#aeb7b3;margin:0 auto 28px}.cta .button{position:relative;z-index:2}.cta .button.primary{background:var(--green);color:var(--ink);border-color:var(--green)}
+    footer{max-width:var(--max);margin:auto;padding:32px 24px 50px;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+    @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(3,1fr)}.node:nth-child(3):after{display:none}.honesty{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:620px){.nav-links a:not(.button){display:none}.hero{padding-top:80px}.hero-actions{flex-direction:column;align-items:center}.stats,.grid,.flow{grid-template-columns:1fr}.node:after{display:none}.cta{margin:40px 16px;padding:42px 22px}footer{display:block}footer span{display:block;margin-top:8px}}
+  </style>
+</head>
+<body>
+  <nav class="nav"><div class="nav-inner"><a class="brand" href="#top"><span class="mark">◈</span> Knowledge Augmentation Lab</a>
+    <div class="nav-links"><a href="#architecture">Architecture</a><a href="#map">Concepts</a><a href="#principles">Principles</a>
+      <a class="button primary" href="https://github.com/ashirimi1019/knowledge-augmentation-lab">View source ↗</a></div></div></nav>
+  <main id="top">
+    <header class="hero"><span class="eyebrow">one fact universe · many augmentation paths</span>
+      <h1>Beyond “just add a vector database.”</h1>
+      <p>A rigorous, executable map of retrieval, reusable context, graphs, tables, memory, and tools—built to show where each mechanism works and where the acronyms stop.</p>
+      <div class="hero-actions"><a class="button primary" href="https://github.com/ashirimi1019/knowledge-augmentation-lab#quick-start">Run the lab →</a><a class="button" href="#map">Explore concepts</a></div>
+    </header>
+    <div class="stats"><div class="stat"><strong>17</strong><span>concepts mapped</span></div><div class="stat"><strong>8</strong><span>executable paths</span></div><div class="stat"><strong>26</strong><span>behavior tests</span></div><div class="stat"><strong>0</strong><span>required API keys</span></div></div>
+
+    <section id="architecture"><span class="section-label">01 · shared architecture</span><h2>Different mechanisms. One inspectable runtime.</h2>
+      <p class="section-copy">Both RAG paths preserve provenance and produce decision traces. The other runnable primitives expose mechanism-specific outputs such as cache metrics, graph facts, recalled memory, row provenance, and tool results.</p>
+      <div class="flow"><div class="node"><span class="num">01</span><h3>Question</h3><p>Intent, constraints, scope</p></div><div class="node"><span class="num">02</span><h3>Route</h3><p>Retrieve, graph, table, cache, memory, tool</p></div><div class="node"><span class="num">03</span><h3>Authorize</h3><p>Trust and ACLs before indexing</p></div><div class="node"><span class="num">04</span><h3>Augment</h3><p>Select or compute evidence</p></div><div class="node"><span class="num">05</span><h3>Return</h3><p>Cited RAG answer or structured result</p></div><div class="node"><span class="num">06</span><h3>Evaluate</h3><p>Retrieval and groundedness metrics</p></div></div>
+    </section>
+
+    <div class="map-section" id="map"><div><span class="section-label">02 · complete concept map</span><h2>Choose the knowledge operation, not the trend.</h2>
+      <p class="section-copy">Filter by family. “Advanced” and “agentic” are umbrellas; Self-RAG, CRAG, CAG, KAG, and database TAG have specific fidelity boundaries.</p>
+      <div class="filters"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="retrieval">Retrieval</button><button class="filter" data-filter="context">Context</button><button class="filter" data-filter="structured">Structured</button><button class="filter" data-filter="memory">Memory</button><button class="filter" data-filter="action">Tools</button></div>
+      <div class="grid">
+        <article class="card" data-family="retrieval"><span class="tag">runnable</span><h3>Naive RAG</h3><p>Chunk → retrieve top-k → inject evidence → generate with citations.</p><p class="trade"><b>Watch:</b> retrieval errors flow directly into generation.</p></article>
+        <article class="card" data-family="retrieval"><span class="tag">runnable</span><h3>Advanced RAG</h3><p>Transform queries, fuse retrievers, rerank, and filter.</p><p class="trade"><b>Boundary:</b> an umbrella, not one reproducible algorithm.</p></article>
+        <article class="card" data-family="retrieval"><span class="tag">architecture</span><h3>Modular RAG</h3><p>Compose replaceable retrievers, routers, verifiers, memory, and generators.</p><p class="trade"><b>Requires:</b> typed contracts, traces, and disciplined configuration.</p></article>
+        <article class="card" data-family="retrieval"><span class="tag">runnable</span><h3>Hybrid RAG</h3><p>Combine exact lexical ranking and vector-space ranking with RRF.</p><p class="trade"><b>Lab:</b> BM25 + transparent TF-IDF baseline.</p></article>
+        <article class="card" data-family="retrieval"><span class="tag">architecture</span><h3>Multi-hop RAG</h3><p>Decompose and alternate retrieval with evidence accumulation.</p><p class="trade"><b>Watch:</b> error propagation and runaway loops.</p></article>
+        <article class="card" data-family="retrieval"><span class="tag">paper-specific</span><h3>Self-RAG</h3><p>A trained model emits retrieval and reflection tokens.</p><p class="trade"><b>Not:</b> any generic prompt-based critique loop.</p></article>
+        <article class="card" data-family="retrieval"><span class="tag">paper-specific</span><h3>CRAG</h3><p>Evaluate retrieval, refine knowledge, and use fallback sources.</p><p class="trade"><b>Generic analogue:</b> call it crag-inspired.</p></article>
+        <article class="card" data-family="retrieval"><span class="tag">router</span><h3>Adaptive RAG</h3><p>Route no-retrieval, single-hop, or iterative retrieval by query complexity.</p><p class="trade"><b>Watch:</b> routing mistakes become a new failure mode.</p></article>
+        <article class="card" data-family="action retrieval"><span class="tag">umbrella</span><h3>Agentic RAG</h3><p>A bounded controller selects sources, observes, replans, and stops.</p><p class="trade"><b>Requires:</b> budgets, loop detection, and permissions.</p></article>
+        <article class="card" data-family="structured"><span class="tag">teaching-scale</span><h3>GraphRAG</h3><p>Local graph evidence plus global community-level reports.</p><p class="trade"><b>Lab:</b> connected communities, not full Microsoft GraphRAG.</p></article>
+        <article class="card" data-family="structured"><span class="tag">runnable mini-kag</span><h3>KAG / KG-RAG</h3><p>Use graphs, ontologies, rules, or schemas for explicit reasoning.</p><p class="trade"><b>Boundary:</b> OpenSPG KAG is a specific full stack.</p></article>
+        <article class="card" data-family="structured"><span class="tag">runnable primitive</span><h3>Table augmentation</h3><p>Typed filters and calculations with row-level provenance.</p><p class="trade"><b>Full TAG:</b> combines DB and LM semantic operators.</p></article>
+        <article class="card" data-family="context"><span class="tag">simulator</span><h3>CAG</h3><p>Preload stable knowledge and reuse a model KV/prefix cache.</p><p class="trade"><b>Lab:</b> context reuse metrics, not fake past_key_values.</p></article>
+        <article class="card" data-family="context"><span class="tag">baseline</span><h3>Long context</h3><p>Place the corpus directly in context, with or without retrieval.</p><p class="trade"><b>Watch:</b> token cost and lost-in-the-middle effects.</p></article>
+        <article class="card" data-family="memory"><span class="tag">runnable</span><h3>Memory augmentation</h3><p>Read and write scoped state across interactions.</p><p class="trade"><b>Requires:</b> provenance, correction, TTL, and deletion.</p></article>
+        <article class="card" data-family="action"><span class="tag">runnable</span><h3>Tool augmentation</h3><p>Call allowlisted APIs, search, calculators, code, or SQL.</p><p class="trade"><b>Rule:</b> retrieved text never grants tool authority.</p></article>
+        <article class="card" data-family="retrieval"><span class="tag">extension</span><h3>Multimodal RAG</h3><p>Retrieve across text, images, audio, video, tables, and layout.</p><p class="trade"><b>Requires:</b> modality-specific provenance and evaluation.</p></article>
+      </div>
+    </div></div>
+
+    <section id="principles"><div class="honesty"><div><span class="section-label">03 · engineering honesty</span><h2>Claims should match the mechanism.</h2>
+      <p class="section-copy">The project deliberately avoids tutorial theater: no API key is needed, TF-IDF is not called a semantic model, and a cached string is not called a model KV cache.</p>
+      <div class="checklist"><div class="check"><span class="tick">✓</span><span>Source trust and ACLs run before ranking.</span></div><div class="check"><span class="tick">✓</span><span>Both RAG answers retain evidence IDs and a decision trace.</span></div><div class="check"><span class="tick">✓</span><span>Teaching simulations are separated from faithful paper reproductions.</span></div><div class="check"><span class="tick">✓</span><span>Retrieval and lexical answer groundedness are executable; wider evaluation layers are documented.</span></div></div></div>
+      <pre class="codebox"><span class="gray">$</span> pip install -e <span class="green">".[dev]"</span>
+<span class="gray">$</span> kal showcase
+
+{
+  <span class="green">"naive-rag"</span>: { "citations": [...] },
+  <span class="green">"advanced-rag"</span>: { "trace": [...] },
+  <span class="green">"cag"</span>: { "cache_hits": 1 },
+  <span class="green">"kag"</span>: { "facts": [...] },
+  <span class="green">"graph-rag"</span>: { "community_reports": [...] },
+  <span class="green">"memory-augmented"</span>: {...},
+  <span class="green">"table-augmented"</span>: {...},
+  <span class="green">"tool-augmented"</span>: {...}
+}</pre></div></section>
+
+    <div class="cta"><h2>Read the trace, not just the answer.</h2><p>Clone the project, run every path locally, and inspect the RAG decision traces alongside each primitive's mechanism-specific output.</p><a class="button primary" href="https://github.com/ashirimi1019/knowledge-augmentation-lab">Open on GitHub ↗</a></div>
+  </main>
+  <footer><div>◈ Knowledge Augmentation Lab</div><span>MIT © 2026 Ashir Imran · Built for inspectability</span></footer>
+  <script>
+    const buttons=[...document.querySelectorAll('.filter')],cards=[...document.querySelectorAll('.card')];
+    buttons.forEach(button=>button.addEventListener('click',()=>{buttons.forEach(b=>b.classList.remove('active'));button.classList.add('active');
+      const f=button.dataset.filter;cards.forEach(card=>card.classList.toggle('hidden',f!=='all'&&!card.dataset.family.split(' ').includes(f)));}));
+  </script>
+</body>
+</html>

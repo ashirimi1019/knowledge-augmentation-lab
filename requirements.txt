@@ -1,0 +1,4 @@
+# Core package has no runtime dependencies.
+# Install the visual explorer with: pip install -e ".[app]"
+streamlit>=1.36
+pandas>=2.0
