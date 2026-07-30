@@ -19,6 +19,10 @@ class RecursiveChunker:
     """Split on natural boundaries, falling back to a hard character window."""
 
     def __init__(self, chunk_size: int = 700, overlap: int = 100) -> None:
+        if isinstance(chunk_size, bool) or not isinstance(chunk_size, int):
+            raise ValueError("chunk_size must be an integer")
+        if isinstance(overlap, bool) or not isinstance(overlap, int):
+            raise ValueError("overlap must be an integer")
         if chunk_size < 40:
             raise ValueError("chunk_size must be at least 40 characters")
         if overlap < 0 or overlap >= chunk_size:
