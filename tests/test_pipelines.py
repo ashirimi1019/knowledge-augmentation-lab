@@ -24,7 +24,7 @@ def test_naive_rag_returns_grounded_answer_citations_and_trace() -> None:
     result = lab.run("naive-rag", "What does RAG retrieve?")
 
     assert "passages" in result.answer.lower()
-    assert result.citations == ["rag"]
+    assert result.citations == ("rag",)
     assert result.strategy == "naive-rag"
     assert [step.name for step in result.trace] == ["chunk", "retrieve", "generate"]
     assert result.evidence[0].document_id == "rag"
@@ -123,5 +123,5 @@ def test_advanced_rag_abstains_when_query_has_no_matching_candidates() -> None:
 
     result = lab.run("advanced-rag", "quokka zeppelin", top_k=2)
 
-    assert result.evidence == []
-    assert result.citations == []
+    assert result.evidence == ()
+    assert result.citations == ()
