@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Protocol
 
 from knowledge_aug_lab.models import Chunk, RetrievalResult
@@ -209,7 +209,7 @@ class HybridRetriever:
     def retrieve(self, query: str, top_k: int = 5) -> list[RetrievalResult]:
         _validate_query(query)
         _validate_top_k(top_k)
-        scores: Counter[str] = Counter()
+        scores: dict[str, float] = defaultdict(float)
         chunks: dict[str, Chunk] = {}
         candidate_count = max(top_k * 3, top_k)
         for retriever, weight in zip(self.retrievers, self.weights, strict=True):

@@ -5,13 +5,13 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NoReturn, cast
 
 
 class FrozenMetadata(dict[str, Any]):
     """Recursively immutable, JSON/pickle/dataclass-compatible metadata."""
 
-    def _immutable(self, *_args: Any, **_kwargs: Any) -> None:
+    def _immutable(self, *_args: Any, **_kwargs: Any) -> NoReturn:
         raise TypeError("metadata is immutable")
 
     __setitem__ = _immutable
@@ -19,9 +19,13 @@ class FrozenMetadata(dict[str, Any]):
     clear = _immutable
     pop = _immutable
     popitem = _immutable
-    setdefault = _immutable
-    update = _immutable
     __ior__ = _immutable
+
+    def setdefault(self, key: str, default: Any = None, /) -> Any:
+        self._immutable(key, default)
+
+    def update(self, *args: Any, **kwargs: Any) -> NoReturn:
+        self._immutable(*args, **kwargs)
 
     def __deepcopy__(self, _memo: dict[int, Any]) -> FrozenMetadata:
         return self
@@ -34,9 +38,9 @@ def _freeze_value(value: Any) -> Any:
     """Recursively detach and freeze common metadata container types."""
 
     if isinstance(value, Mapping):
-        return _freeze_mapping(value)
+        return _freeze_mapping(cast(Mapping[Any, Any], value))
     if isinstance(value, (set, frozenset)):
-        return frozenset(_freeze_value(item) for item in value)
+        return frozenset(_freeze_value(item) for item in cast(set[Any] | frozenset[Any], value))
     if isinstance(value, str):
         return str(value)
     if isinstance(value, bool):
@@ -52,7 +56,7 @@ def _freeze_value(value: Any) -> Any:
     if value is None:
         return None
     if isinstance(value, Sequence):
-        return tuple(_freeze_value(item) for item in value)
+        return tuple(_freeze_value(item) for item in cast(Sequence[Any], value))
     raise TypeError(f"unsupported metadata value type: {type(value).__name__}")
 
 
@@ -72,13 +76,17 @@ def _freeze_metadata(metadata: Mapping[str, Any]) -> Mapping[str, Any]:
     return _freeze_mapping(metadata)
 
 
+def _empty_metadata() -> dict[str, Any]:
+    return {}
+
+
 @dataclass(frozen=True, slots=True)
 class Document:
     """A source document before chunking."""
 
     id: str
     text: str
-    metadata: Mapping[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=_empty_metadata)
 
     def __post_init__(self) -> None:
         if not isinstance(self.id, str) or not self.id.strip():
@@ -101,7 +109,7 @@ class Chunk:
     text: str
     start: int
     end: int
-    metadata: Mapping[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=_empty_metadata)
 
     def __post_init__(self) -> None:
         if not isinstance(self.id, str) or not self.id.strip():

@@ -11,10 +11,24 @@ requires-python = ">=3.10"
 license = "MIT"
 authors = [{name = "Ashir Imran"}]
 dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 
 [project.optional-dependencies]
 app = ["streamlit>=1.36", "pandas>=2.0"]
-dev = ["hypothesis>=6.112", "pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.5"]
+dev = [
+    "build>=1.2",
+    "hypothesis>=6.112",
+    "pyright>=1.1.390",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "twine>=6.2,<7",
+]
 
 [project.scripts]
 kal = "knowledge_aug_lab.cli:main"
@@ -40,3 +54,9 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+reportUnnecessaryIsInstance = false

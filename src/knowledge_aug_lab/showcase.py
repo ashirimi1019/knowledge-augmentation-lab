@@ -7,7 +7,7 @@ from typing import Any
 
 from knowledge_aug_lab.augmentation import ContextCache, MemoryStore, TableStore, ToolRegistry
 from knowledge_aug_lab.knowledge import KnowledgeGraph
-from knowledge_aug_lab.models import Document
+from knowledge_aug_lab.models import AugmentationResult, Document
 from knowledge_aug_lab.pipelines import KnowledgeAugmentationLab
 
 
@@ -69,10 +69,14 @@ def run_showcase() -> dict[str, dict[str, Any]]:
     table_result = table.aggregate("latency_ms", "mean", {"strategy": "RAG"})
 
     tools = ToolRegistry()
-    tools.register("estimate_cost", lambda tokens, rate: tokens / 1_000_000 * rate)
+
+    def estimate_cost(tokens: int, rate: float) -> float:
+        return tokens / 1_000_000 * rate
+
+    tools.register("estimate_cost", estimate_cost)
     tool_result = tools.call("estimate_cost", tokens=2_500_000, rate=0.40)
 
-    def serialize_pipeline(result: Any) -> dict[str, Any]:
+    def serialize_pipeline(result: AugmentationResult) -> dict[str, Any]:
         return {
             "answer": result.answer,
             "citations": result.citations,

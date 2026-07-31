@@ -104,6 +104,15 @@ def test_document_metadata_supports_standard_serialization() -> None:
     assert pickle.loads(pickle.dumps(document)) == document
 
 
+def test_document_metadata_rejects_setdefault_and_update() -> None:
+    document = Document("doc", "text", {"trusted": True})
+
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        document.metadata.setdefault("scope", "public")  # type: ignore[attr-defined]
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        document.metadata.update({"scope": "public"})  # type: ignore[attr-defined]
+
+
 def test_metadata_normalizes_mutable_string_subclasses_before_acl_checks() -> None:
     scope = MutableString("public")
     document = Document("doc", "text", {"scopes": [scope], "trusted": True})

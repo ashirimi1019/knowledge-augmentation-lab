@@ -87,12 +87,11 @@ class TableStore:
                 provenance=provenance,
             )
 
-        values = [row.get(column) for _, row in selected]
-        if not all(isinstance(value, Real) and not isinstance(value, bool) for value in values):
-            raise TypeError(f"column {column!r} must contain numeric values")
-
         numeric: list[float] = []
-        for value in values:
+        for _, row in selected:
+            value = row[column]
+            if not isinstance(value, Real) or isinstance(value, bool):
+                raise TypeError(f"column {column!r} must contain numeric values")
             try:
                 resolved_value = float(value)
             except OverflowError as exc:

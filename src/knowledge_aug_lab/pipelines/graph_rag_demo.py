@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from knowledge_aug_lab.knowledge import KnowledgeGraph
+from knowledge_aug_lab.knowledge import Fact, KnowledgeGraph
 from knowledge_aug_lab.models import AugmentationResult, TraceStep
 
 from .base import validate_run_inputs
@@ -14,7 +14,7 @@ class GraphRAGDemoPipeline:
 
     def run(self, query: str, top_k: int = 3) -> AugmentationResult:
         validate_run_inputs(query, top_k)
-        facts = []
+        facts: list[Fact] = []
         seen_facts: set[tuple[str, str, str]] = set()
         for entity in self.graph.match_entities(query):
             for fact in self.graph.neighborhood(entity, max_hops=top_k):
