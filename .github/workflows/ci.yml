@@ -7,25 +7,79 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  quality:
+    name: Quality
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"
           cache: pip
-      - name: Install
+      - name: Install development environment
         run: python -m pip install -e ".[dev]"
       - name: Lint
         run: ruff check .
+      - name: Check formatting
+        run: ruff format --check .
+      - name: Strict type check
+        run: pyright
+      - name: Test with branch coverage
+        run: pytest --cov=knowledge_aug_lab --cov-branch --cov-report=term-missing
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install development environment
+        run: python -m pip install -e ".[dev]"
       - name: Test
-        run: pytest --cov=knowledge_aug_lab --cov-report=term-missing
-      - name: CLI smoke test
+        run: pytest
+      - name: Smoke-test CLI
         run: kal showcase > /dev/null && kal catalog --json > /dev/null
-      - name: Build wheel
-        run: python -m pip wheel . --no-deps --wheel-dir dist
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install build tooling
+        run: python -m pip install "build>=1.2" "twine>=6.2,<7"
+      - name: Build wheel and source distribution
+        run: python -m build
+      - name: Validate distribution metadata
+        run: python -m twine check dist/*
+      - name: Install and smoke-test wheel
+        run: |
+          python -m venv .venv-wheel
+          .venv-wheel/bin/python -m pip install dist/*.whl
+          .venv-wheel/bin/kal catalog --json > /dev/null
+      - name: Install and smoke-test source distribution
+        run: |
+          python -m venv .venv-sdist
+          .venv-sdist/bin/python -m pip install dist/*.tar.gz
+          .venv-sdist/bin/kal showcase > /dev/null

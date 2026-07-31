@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import cast
 
 from knowledge_aug_lab.models import Document
 
@@ -34,9 +35,10 @@ def filter_authorized_documents(
         raw_scopes = document.metadata.get("scopes")
         if not isinstance(raw_scopes, (list, tuple, set, frozenset)):
             continue
-        if not raw_scopes or any(not isinstance(scope, str) or not scope.strip() for scope in raw_scopes):
+        scope_values = cast(Iterable[object], raw_scopes)
+        if not raw_scopes or any(not isinstance(scope, str) or not scope.strip() for scope in scope_values):
             continue
-        document_scopes = set(raw_scopes)
+        document_scopes = set(cast(Iterable[str], raw_scopes))
         if not document_scopes or document_scopes.isdisjoint(scopes):
             continue
         allowed.append(document)
