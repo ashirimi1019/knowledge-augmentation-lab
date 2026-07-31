@@ -2,70 +2,88 @@
 
 ## Design goals
 
-1. **Inspectable:** RAG stages emit decision traces; other primitives expose mechanism-specific outputs and provenance.
+1. **Inspectable:** deterministic stages expose human-readable details plus immutable structured attributes.
 2. **Modular:** retrieval, generation, graph, memory, table, and tool components have narrow contracts.
-3. **Deterministic by default:** CI does not need a model key or network access.
-4. **Honest about fidelity:** teaching-scale mechanics and paper reproductions are labeled differently.
-5. **Secure by construction:** source trust and ACL filtering happen before indexing/ranking.
+3. **Offline by default:** CI needs no model key or network at runtime.
+4. **Honest fidelity:** lexical baselines and teaching simulations are not labeled as dense retrieval or faithful paper reproductions.
+5. **Protected RAG path:** trust and ACL filtering precede chunking and indexing in `KnowledgeAugmentationLab`.
 
-## Shared types
+“Protected RAG path” is deliberately narrower than “secure by construction.” Standalone retrievers and graph, cache, table, memory, and tool primitives require callers to provide their own authorization and lifecycle controls.
 
-- `Document`: source ID, text, and metadata.
-- `Chunk`: document ID, character span, inherited metadata.
-- `RetrievalResult`: chunk, score, rank, and retriever identity.
-- `TraceStep`: stage name and human-readable decision detail.
-- `AugmentationResult`: strategy, answer, citations, evidence, and trace.
+## Actual execution paths
 
-`KnowledgeAugmentationLab(documents, *, scopes, trusted_only=True)` is the indexing contract. Callers must supply
-the requester's scopes; the lab applies trust and ACL metadata before chunking and fitting either retriever, so
-documents without an allowed scope (or without explicit trust by default) never enter an index.
+### Registered document pipelines
 
-## Retrieval path
+`KnowledgeAugmentationLab` authorizes documents once and registers exactly two strategies:
+
+- `naive-rag`: recursive chunking → BM25 → positive-score evidence → extractive generator;
+- `advanced-rag`: deterministic query expansion → BM25 + TF-IDF → weighted RRF → lexical rerank/filter → extractive generator.
+
+Both share `Document`, `Chunk`, `RetrievalResult`, `TraceStep`, and `AugmentationResult` contracts.
+
+### Separate adapters and primitives
+
+Graph, table, memory, and tool adapters implement the pipeline protocol but are constructed separately from the document lab. `kal showcase` also calls `ContextCache` and several primitives directly. There is no adaptive router connecting all mechanisms into one agent.
 
 ```mermaid
-sequenceDiagram
-    participant U as User
-    participant T as Query transformer
-    participant B as BM25
-    participant V as TF-IDF vector space
-    participant F as RRF fusion
-    participant R as Rerank/filter
-    participant G as Grounded generator
+flowchart LR
+    D[(Caller documents)] --> A[Trust + ACL filter]
+    A -->|authorized snapshot| C[Recursive chunking]
+    C --> B[BM25]
+    C --> T[TF-IDF]
+    B --> N[Naive RAG]
+    B --> F[Weighted RRF]
+    T --> F
+    F --> H[Lexical rerank/filter]
+    H --> X[Advanced RAG]
+    N --> G[Extractive generator]
+    X --> G
+    G --> O[Answer + citations + evidence + trace]
 
-    U->>T: question
-    T->>B: expanded query
-    T->>V: expanded query
-    B-->>F: sparse ranking
-    V-->>F: vector-space ranking
-    F-->>R: fused candidates
-    R-->>G: evidence + provenance
-    G-->>U: answer + citations + trace
+    KG[(Graph)] --> P[Separate adapters]
+    DB[(Rows)] --> P
+    M[(Scoped memory)] --> P
+    R[Allowlisted tool registry] --> P
 ```
 
-BM25 and TF-IDF are implemented from first principles to keep scoring visible. The `Retriever` protocol allows an embedding/vector-database backend without changing orchestration.
+## Shared types and invariants
 
-## Non-retrieval paths
+- `Document`: normalized nonempty ID/text and recursively immutable metadata.
+- `Chunk`: source ID, exact character span, text, and detached metadata.
+- `RetrievalResult`: finite score, positive rank, retriever identity.
+- `TraceStep`: stage name/detail plus recursively immutable structured attributes.
+- `AugmentationResult`: immutable snapshots of citations, evidence, and trace.
 
-- `KnowledgeGraph`: typed triples, BFS neighborhoods, and deterministic toy community reports.
-- `ContextCache`: corpus-size budget plus build/hit instrumentation for context-reuse experiments.
-- `MemoryStore`: scope-isolated write/read behavior.
-- `TableStore`: typed filters and aggregations with row indices as provenance.
-- `ToolRegistry`: allowlisted functions and auditable arguments/output.
+Metadata uses a composition-based read-only `Mapping`, so inherited `dict` mutation descriptors cannot bypass the guard. Accepted leaves are JSON-safe finite scalars, mappings, and ordered sequences. `dataclasses.asdict` deep-copies this mapping to a plain dictionary for ordinary JSON encoding; model pickle round-trips remain supported.
+
+## Trace contract
+
+RAG traces currently expose:
+
+- stage name and human-readable detail;
+- document/chunk counts;
+- original/transformed query for the hybrid transform stage;
+- retriever names and candidate count;
+- requested `top_k` and selected chunk IDs;
+- generator identity, citation IDs, and abstention.
+
+They do **not** expose per-result scores/ranks, latency, tokens, cost, model/data revision, or durable run IDs. Query-derived trace fields may be sensitive and must be treated as untrusted data by renderers/log sinks. The Streamlit helper HTML-escapes trace content.
 
 ## Generator boundary
 
-The default `ExtractiveGenerator` selects evidence sentences and appends source IDs. This is intentionally not marketed as an LLM. A production adapter can implement the same contract using an OpenAI-compatible endpoint, local Transformers model, or another provider.
+`ExtractiveGenerator` copies and scores evidence sentences, attaches source IDs, and abstains when no supported candidate exists. It is not an LLM. A production model adapter should preserve context-only grounding, evidence IDs, citations, and abstention while adding model/prompt revision and token/latency/cost telemetry.
 
-A model adapter should preserve context-only instructions, abstention, structured citations, evidence IDs separate from untrusted content, model/prompt revision, and token/latency/cost telemetry.
+## Production replacement map
 
-## From teaching to production
+These are aspirational interfaces, not implemented integrations:
 
-| Current component | Production replacement | Contract retained |
+| Current component | Possible production replacement | Contract to retain |
 |---|---|---|
-| TF-IDF | sentence-transformers / hosted embeddings | `retrieve(query, top_k)` |
-| In-memory chunks | Qdrant / pgvector / FAISS | chunk IDs + metadata |
-| Lexical reranker | cross-encoder / ColBERT | ranked candidates |
-| Extractive generator | local/hosted LLM | answer + citations |
-| Connected components | entity resolution + Leiden communities | local/global graph evidence |
-| Context string reuse | actual prefix/KV-cache backend | corpus revision + cache telemetry |
-| Python rows | DuckDB with validated plans | result + row provenance |
+| BM25 + TF-IDF | Dense encoder plus evaluated vector index | deterministic IDs, scores, ranks, metadata |
+| In-memory chunks | pgvector/Qdrant/FAISS with access-aware ingestion | source/chunk identity and authorization |
+| Lexical reranker | Cross-encoder/ColBERT | ranked candidate snapshot |
+| Extractive generator | Local/hosted LLM | evidence-only answer, citations, abstention |
+| Connected components | Entity resolution + Leiden + hierarchical summaries | graph evidence and report provenance |
+| `ContextCache` simulator | Actual prefix/KV-cache backend | corpus/model/tokenizer/prompt revision |
+| Python rows | Validated database plans | result plus row provenance |
+| In-process tools | Authorized sandboxed executor | name/argument policy, timeout, audit, rollback |

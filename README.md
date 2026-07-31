@@ -2,14 +2,14 @@
 
 # Knowledge Augmentation Lab
 
-### One fact universe. Eight executable augmentation paths. Zero API keys required.
+### Eight deterministic showcase examples. Two integrated RAG pipelines. Zero API keys required.
 
 [![CI](https://github.com/ashirimi1019/knowledge-augmentation-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/ashirimi1019/knowledge-augmentation-lab/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-18A558.svg)](LICENSE)
 
-**[Concept explorer](https://ashirimi1019.github.io/knowledge-augmentation-lab/) · [Run the lab](#quick-start) · [Taxonomy](docs/taxonomy.md) · [Decision guide](docs/decision-guide.md)**
+**[Concept explorer](https://ashirimi1019.github.io/knowledge-augmentation-lab/) · [Run the lab](#quick-start) · [Evaluation](docs/evaluation.md) · [Threat model](docs/threat-model.md) · [Decision guide](docs/decision-guide.md)**
 
 </div>
 
@@ -17,22 +17,22 @@
 
 Most projects show one vector search pipeline and call it “RAG.” This repository treats knowledge augmentation as a **system-design space**: retrieval, reusable context, structured knowledge, tables, memory, and tools are different mechanisms with different failure modes.
 
-The default profile is intentionally dependency-light and deterministic. It runs on a laptop without an LLM key, keeps evidence and decisions visible, and separates **faithful implementations** from **mechanism-level teaching simulations**.
+The default profile is intentionally dependency-light and deterministic. It runs on a laptop without an LLM key, keeps evidence and decisions visible, and distinguishes runnable primitives from adjacent teaching simulations and unimplemented roadmap systems.
 
 ## What actually runs
 
-| Path | Mechanism exercised | Status |
-|---|---|---|
-| **Naive RAG** | Recursive chunking → BM25 → grounded extractive answer → citations | ✅ Runnable |
-| **Advanced / Hybrid RAG** | Query expansion → BM25 + TF-IDF → weighted RRF → rerank/filter | ✅ Runnable |
-| **mini-KAG / KG-RAG** | Typed triples → entity matching → deterministic multi-hop traversal | ✅ Runnable |
-| **GraphRAG mechanics** | Connected graph communities → inspectable community reports | 🧪 Teaching-scale approximation |
-| **CAG mechanics** | Bounded corpus preload → repeated context reuse → cold/hit counters | 🧪 Context-reuse simulator, not a real model KV cache |
-| **Memory augmentation** | User-scoped writes → relevance-ranked cross-turn recall | ✅ Runnable |
-| **Table augmentation** | Typed filters/aggregations → row-level provenance | ✅ Runnable primitive; not a full TAG-Bench reproduction |
-| **Tool augmentation** | Explicit allowlist → structured arguments → auditable output | ✅ Runnable |
-| **Evaluation** | Recall@k, precision@k, MRR, lexical groundedness | ✅ Runnable |
-| **Security** | Trust + ACL filtering before indexing/ranking | ✅ Runnable |
+| Path | Mechanism exercised | Execution | Fidelity / boundary |
+|---|---|---|---|
+| **Naive RAG** | Recursive chunking → BM25 → extractive answer → citations | Runnable | Faithful transparent primitive |
+| **Advanced / Hybrid RAG** | Query expansion → BM25 + TF-IDF → weighted RRF → lexical rerank/filter | Runnable | Two lexical representations; adjacent to sparse+dense hybrid |
+| **mini-KAG / KG-RAG** | Typed triples → entity matching → deterministic multi-hop traversal | Runnable | Adjacent to, not a reproduction of, OpenSPG KAG |
+| **GraphRAG mechanics** | Connected components → inspectable community reports | Runnable simulation | Adjacent to Microsoft GraphRAG; no Leiden or LLM summaries |
+| **CAG mechanics** | Bounded corpus preload → context reuse → cold/hit counters | Runnable simulation | Not a model KV cache |
+| **Memory augmentation** | Scoped in-process writes → lexical recall | Runnable primitive | No persistence, deletion, provenance, or TTL |
+| **Table augmentation** | Validated equality filters → finite aggregation → row indices | Runnable primitive | Database half only; not TAG-Bench |
+| **Tool augmentation** | Name/kwarg allowlist → inspectable `ToolResult` | Runnable primitive | No value schema, timeout, sandbox, or audit log |
+| **Evaluation** | Versioned fixture → RR/MRR, Recall/Precision, nDCG, lexical groundedness | Runnable regression | Three self-authored lexical cases; not a benchmark |
+| **Security** | Trust + ACL filtering before document RAG indexing | Runnable boundary | Applies to `KnowledgeAugmentationLab`, not every standalone primitive |
 
 > **Why the labels matter:** Self-RAG, CRAG, Microsoft GraphRAG, OpenSPG KAG, database TAG, and KV-cache CAG are paper- or framework-specific. A generic prompt loop is not automatically Self-RAG, and caching a Python string is not a true model KV cache. The [taxonomy](docs/taxonomy.md) makes those boundaries explicit.
 
@@ -40,34 +40,24 @@ The default profile is intentionally dependency-light and deterministic. It runs
 
 ```mermaid
 flowchart LR
-    Q[Question] --> R{Router / strategy}
+    Q[Question] --> S{Explicit strategy}
     D[(Documents)] --> A[Trust + ACL authorization]
     A --> C[Chunk + provenance]
-    C --> S[BM25 sparse]
-    C --> V[TF-IDF vector space]
-    S --> F[RRF fusion]
+    C --> B[BM25]
+    C --> V[TF-IDF]
+    B --> N[Naive RAG]
+    B --> F[Weighted RRF]
     V --> F
-    F --> RR[Rerank + filter]
-    RR --> G[Grounded generator]
-
-    R --> F
-    R --> KG[(Knowledge graph)]
-    R --> DB[(Typed table)]
-    R --> CC[(Context cache)]
-    R --> M[(Scoped memory)]
-    R --> T[Allowlisted tools]
-
-    KG --> P[Mechanism-specific outputs]
-    DB --> P
-    CC --> P
-    M --> P
-    T --> P
+    F --> H[Lexical rerank + filter]
+    H --> X[Advanced RAG]
+    S --> N
+    S --> X
+    N --> G[Extractive generator]
+    X --> G
     G --> O[Answer + citations + trace]
-    O --> E[Evaluation metrics]
-    P --> E
 ```
 
-Every retrieval path returns the same typed objects: `Document`, `Chunk`, `RetrievalResult`, `AugmentationResult`, and `TraceStep`. That makes the architecture modular without hiding mechanics behind a framework.
+The graph, table, memory, and tool adapters share `AugmentationResult` but are constructed separately; there is no adaptive controller routing all mechanisms. See [Architecture](docs/architecture.md).
 
 ## Quick start
 
@@ -99,6 +89,7 @@ Ask the same question through two retrieval pipelines:
 ```bash
 kal demo "How does RAG ground generation?" --strategy naive-rag
 kal demo "How does RAG ground generation?" --strategy advanced-rag
+kal evaluate --check
 ```
 
 Explore the complete terminology catalog:
@@ -134,32 +125,30 @@ streamlit run app.py
   "strategy": "advanced-rag",
   "citations": ["rag"],
   "trace": [
-    {"name": "transform", "detail": "expanded the query"},
-    {"name": "hybrid-retrieve", "detail": "fused BM25 and TF-IDF with RRF"},
-    {"name": "rerank-filter", "detail": "kept relevant candidates"},
-    {"name": "generate", "detail": "composed a context-only answer"}
+    {"name": "transform", "detail": "expanded the query", "attributes": {"original_query": "...", "transformed_query": "..."}},
+    {"name": "hybrid-retrieve", "detail": "fused BM25 and TF-IDF with RRF", "attributes": {"retrievers": ["bm25", "tfidf"], "candidate_count": 2}},
+    {"name": "rerank-filter", "detail": "kept relevant candidates", "attributes": {"requested_top_k": 3, "selected_chunk_ids": ["rag#0"]}},
+    {"name": "generate", "detail": "composed a context-only answer", "attributes": {"generator": "extractive", "citation_ids": ["rag"], "abstained": false}}
   ]
 }
 ```
 
-A useful augmentation system should expose:
+The current RAG trace exposes:
 
 - source and chunk IDs;
 - transformations and subqueries;
-- scores and ranks;
-- cache/memory/tool decisions;
 - citations and abstentions;
-- latency, cost, and evaluation configuration.
+
+Per-result scores/ranks, latency, tokens, cost, revisions, and durable run IDs are production telemetry requirements, not current claims.
 
 ## Evaluation is layered
 
 Retrieval quality is not answer quality. The lab separates:
 
-1. **Retriever:** Recall@k, Precision@k, MRR, nDCG (extension).
-2. **Context:** relevance, redundancy, token budget, evidence coverage.
-3. **Answer:** correctness, groundedness, citation precision/recall, abstention.
-4. **System:** p50/p95 latency, token/cost budget, cache hit rate, tool failures.
-5. **Security:** source trust, ACL isolation, poisoning, indirect prompt injection, exfiltration.
+1. **Implemented retriever metrics:** Recall@k, returned-result Precision@k, per-case RR, summary MRR, binary nDCG@k.
+2. **Implemented answer proxy:** lexical groundedness plus deterministic citations/abstention.
+3. **Required for broader claims:** context coverage, correctness/entailment, citation precision/recall, latency/cost, external and adversarial datasets.
+4. **Separately tested security boundaries:** source trust, ACL isolation, immutable metadata, argument allowlists, escaped traces.
 
 See [Evaluation and safety](docs/evaluation-and-safety.md).
 
@@ -172,16 +161,19 @@ knowledge-augmentation-lab/
 ├── src/knowledge_aug_lab/
 │   ├── catalog.py                 # terminology and trade-off catalog
 │   ├── retrieval.py               # BM25, TF-IDF, hybrid RRF
-│   ├── pipelines.py               # naive and advanced RAG traces
+│   ├── pipelines/                 # registry plus RAG/graph/table/memory/tool adapters
 │   ├── knowledge.py               # multi-hop graph + community reports
 │   ├── augmentation.py            # context, table, memory, tool primitives
-│   ├── evaluation.py              # deterministic metrics
+│   ├── evaluation.py              # deterministic metric primitives
+│   ├── evaluation_suite.py        # fixture validation, runner, baseline report
+│   ├── fixtures/                  # packaged corpus and exact baseline
 │   ├── presentation.py            # escaped trace rendering for the visual app
 │   ├── security.py                # pre-retrieval trust/ACL controls
 │   ├── showcase.py                # all-family executable demo
 │   └── cli.py                     # `kal` command
-├── tests/                         # behavior-first test suite
-└── docs/                          # taxonomy, architecture, decisions, safety
+├── scripts/quality.py             # complete cross-platform contributor gate
+├── tests/                         # behavior-first and policy test suite
+└── docs/                          # taxonomy, ADRs, evaluation, threat model
 ```
 
 ## Engineering choices
@@ -195,12 +187,10 @@ knowledge-augmentation-lab/
 ## Tests
 
 ```bash
-pytest -q
-pytest --cov=knowledge_aug_lab --cov-report=term-missing
-ruff check .
+python scripts/quality.py
 ```
 
-The suite covers chunking/retrieval, rank fusion, pipelines, graphs, cache reuse, table provenance, scoped memory, tool allowlists, metrics, catalog integrity, CLI behavior, and ACL isolation.
+The one command runs Ruff, strict Pyright, branch-enabled coverage, wheel/sdist builds, strict Twine checks, isolated artifact installs, version checks, and installed CLI/evaluation smoke tests. See [Contributing](CONTRIBUTING.md).
 
 ## Next production profiles
 

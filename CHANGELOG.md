@@ -1,0 +1,27 @@
+# Changelog
+
+All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
+
+## [0.2.0] - 2026-07-30
+
+### Added
+
+- Versioned deterministic evaluation fixture, exact baseline check, and `kal evaluate` command.
+- Composition-based immutable, JSON-safe structured trace attributes for RAG stages.
+- Property/adversarial tests with an enforced 95% branch-coverage floor.
+- Strict Pyright, Python 3.10–3.13 CI, wheel/sdist installation checks, strict Twine validation, CodeQL, Dependabot, immutable Action pins, and protected required checks.
+- Threat/control/test mapping, adversarial examples, ADRs, failure-mode mechanism guide, contributor gate, and semantic-tag release workflow.
+
+### Changed
+
+- Public models, retrievers, graph/table/cache/memory/tools, strict JSON evaluation fixtures, deterministic generation, and pipeline interfaces fail closed at their documented boundaries.
+- Documentation distinguishes runnable primitives, teaching simulations, and unimplemented production mechanisms.
+
+## [0.1.0] - 2026-07-30
+
+### Added
+
+- Initial dependency-light knowledge-augmentation lab, CLI, Streamlit app, GitHub Pages explorer, retrieval/evaluation primitives, showcase examples, tests, and CI.
+
+[0.2.0]: https://github.com/ashirimi1019/knowledge-augmentation-lab/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/ashirimi1019/knowledge-augmentation-lab/releases/tag/v0.1.0

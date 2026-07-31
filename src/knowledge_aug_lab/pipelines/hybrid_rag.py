@@ -43,9 +43,32 @@ class HybridRAGPipeline:
             citations=citations,
             evidence=evidence,
             trace=[
-                TraceStep("transform", f"expanded query to: {transformed}"),
-                TraceStep("hybrid-retrieve", "fused BM25 and TF-IDF rankings with RRF"),
-                TraceStep("rerank-filter", f"kept {len(evidence)} lexical-relevant candidates"),
-                TraceStep("generate", "extractive generator composed a context-only answer"),
+                TraceStep(
+                    "transform",
+                    f"expanded query to: {transformed}",
+                    {"original_query": query, "transformed_query": transformed},
+                ),
+                TraceStep(
+                    "hybrid-retrieve",
+                    "fused BM25 and TF-IDF rankings with RRF",
+                    {"retrievers": ["bm25", "tfidf"], "candidate_count": len(candidates)},
+                ),
+                TraceStep(
+                    "rerank-filter",
+                    f"kept {len(evidence)} lexical-relevant candidates",
+                    {
+                        "requested_top_k": top_k,
+                        "selected_chunk_ids": [chunk.id for chunk in evidence],
+                    },
+                ),
+                TraceStep(
+                    "generate",
+                    "extractive generator composed a context-only answer",
+                    {
+                        "generator": "extractive",
+                        "citation_ids": citations,
+                        "abstained": not citations,
+                    },
+                ),
             ],
         )

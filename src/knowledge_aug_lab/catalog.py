@@ -89,7 +89,7 @@ def get_catalog() -> list[Concept]:
             "A controller plans, selects sources, retrieves, judges sufficiency, and may retry.",
             "Multi-source and multi-hop workflows.",
             "Non-determinism, cost, loops, and observability burden.",
-            "Decision traces and source-routing examples.",
+            "Not implemented; tool and trace primitives exist without an agent controller or source router.",
         ),
         Concept(
             "self-rag",
@@ -109,7 +109,7 @@ def get_catalog() -> list[Concept]:
             "Grade retrieved evidence, refine weak queries, and use a fallback source.",
             "Hallucination-sensitive factual systems.",
             "Evaluator errors can reject useful context or trigger costly fallback.",
-            "Relevance filtering is runnable; fallback retrieval remains an extension profile.",
+            "Not implemented; the advanced path has a positive-score gate, not CRAG grading or fallback retrieval.",
         ),
         Concept(
             "adaptive-rag",
@@ -119,7 +119,7 @@ def get_catalog() -> list[Concept]:
             "Route no-retrieval, single-hop, or iterative retrieval by query complexity.",
             "Variable workloads with latency and quality budgets.",
             "Routing mistakes are an additional failure mode.",
-            "Decision framework and routing matrix.",
+            "Documented decision framework only; no adaptive controller is implemented.",
         ),
         Concept(
             "multimodal-rag",
@@ -149,7 +149,7 @@ def get_catalog() -> list[Concept]:
             "Place a large corpus directly in the prompt without a retrieval index.",
             "Small corpora and cross-document synthesis.",
             "Token cost and attention quality can degrade with length.",
-            "Compared directly with CAG and RAG in the decision guide.",
+            "Trade-offs are discussed in the decision guide; no empirical long-context comparison is implemented.",
         ),
         Concept(
             "kag",
@@ -169,7 +169,7 @@ def get_catalog() -> list[Concept]:
             "Read and write scoped episodic or semantic memory across interactions.",
             "Personalized and long-running assistants.",
             "Privacy, stale memory, conflicts, and forgetting policies.",
-            "User-scoped memory with relevance-ranked recall.",
+            "Process-local scoped strings with lexical relevance-ranked recall; no persistence or deletion.",
         ),
         Concept(
             "tool-augmented-generation",
@@ -179,7 +179,7 @@ def get_catalog() -> list[Concept]:
             "Select and call allowlisted external functions, APIs, search, or code execution.",
             "Real-time facts, exact calculations, and actions.",
             "Permissions, injection, side effects, and tool failures require controls.",
-            "Allowlisted ToolRegistry with arguments and output traces.",
+            "Allowlisted tool/keyword names and inspectable ToolResult; no value schema, timeout, or sandbox.",
         ),
         Concept(
             "table-augmented-generation",
@@ -189,6 +189,6 @@ def get_catalog() -> list[Concept]:
             "Filter, aggregate, or reason over rows before verbalizing a result.",
             "Analytics, financial tables, and operational datasets.",
             "Schema ambiguity and generated-query validation.",
-            "Typed aggregations with row-level provenance.",
+            "Validated equality filters and finite aggregations with row-index provenance.",
         ),
     ]

@@ -2,6 +2,7 @@ import pytest
 
 from knowledge_aug_lab.models import Document
 from knowledge_aug_lab.pipelines import KnowledgeAugmentationLab
+from knowledge_aug_lab.query_expansion import QueryExpander
 
 
 def test_naive_rag_returns_grounded_answer_citations_and_trace() -> None:
@@ -27,6 +28,17 @@ def test_naive_rag_returns_grounded_answer_citations_and_trace() -> None:
     assert result.citations == ("rag",)
     assert result.strategy == "naive-rag"
     assert [step.name for step in result.trace] == ["chunk", "retrieve", "generate"]
+    assert result.trace[0].attributes == {"document_count": 2, "chunk_count": 2}
+    assert result.trace[1].attributes == {
+        "retriever": "bm25",
+        "requested_top_k": 3,
+        "selected_chunk_ids": ("rag#0",),
+    }
+    assert result.trace[2].attributes == {
+        "generator": "extractive",
+        "citation_ids": ("rag",),
+        "abstained": False,
+    }
     assert result.evidence[0].document_id == "rag"
 
 
@@ -66,6 +78,21 @@ def test_advanced_rag_uses_hybrid_retrieval_reranking_and_filtering() -> None:
         "rerank-filter",
         "generate",
     ]
+    assert result.trace[0].attributes["original_query"] == ("How do I fix XJ-4092 authentication credential failure?")
+    assert result.trace[0].attributes["transformed_query"]
+    assert result.trace[1].attributes == {
+        "retrievers": ("bm25", "tfidf"),
+        "candidate_count": 2,
+    }
+    assert result.trace[2].attributes == {
+        "requested_top_k": 2,
+        "selected_chunk_ids": ("exact#0", "semantic#0"),
+    }
+    assert result.trace[3].attributes == {
+        "generator": "extractive",
+        "citation_ids": ("exact", "semantic"),
+        "abstained": False,
+    }
 
 
 def test_pipeline_excludes_untrusted_and_unauthorized_documents_before_indexing() -> None:
@@ -125,3 +152,23 @@ def test_advanced_rag_abstains_when_query_has_no_matching_candidates() -> None:
 
     assert result.evidence == ()
     assert result.citations == ()
+
+
+def test_advanced_trace_reports_abstention_after_expansion_only_match() -> None:
+    lab = KnowledgeAugmentationLab(
+        documents=[
+            Document(
+                "doc",
+                "Alias evidence.",
+                {"scopes": ["public"], "trusted": True},
+            )
+        ],
+        scopes={"public"},
+        query_expander=QueryExpander({"trigger": ["alias"]}),
+    )
+
+    result = lab.run("advanced-rag", "trigger", top_k=1)
+
+    assert result.evidence
+    assert result.citations == ()
+    assert result.trace[-1].attributes["abstained"] is True

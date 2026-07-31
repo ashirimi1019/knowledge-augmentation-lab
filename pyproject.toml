@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "knowledge-augmentation-lab"
-version = "0.1.0"
+version = "0.2.0"
 description = "Runnable, dependency-light demonstrations of modern knowledge-augmentation patterns for LLMs."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,6 +35,9 @@ kal = "knowledge_aug_lab.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+knowledge_aug_lab = ["fixtures/*.json"]
 
 [tool.pytest.ini_options]
 addopts = "-q"

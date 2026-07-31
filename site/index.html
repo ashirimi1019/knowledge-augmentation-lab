@@ -61,16 +61,16 @@
     <div class="nav-links"><a href="#architecture">Architecture</a><a href="#map">Concepts</a><a href="#principles">Principles</a>
       <a class="button primary" href="https://github.com/ashirimi1019/knowledge-augmentation-lab">View source ↗</a></div></div></nav>
   <main id="top">
-    <header class="hero"><span class="eyebrow">one fact universe · many augmentation paths</span>
+    <header class="hero"><span class="eyebrow">eight examples · two integrated RAG pipelines</span>
       <h1>Beyond “just add a vector database.”</h1>
       <p>A rigorous, executable map of retrieval, reusable context, graphs, tables, memory, and tools—built to show where each mechanism works and where the acronyms stop.</p>
       <div class="hero-actions"><a class="button primary" href="https://github.com/ashirimi1019/knowledge-augmentation-lab#quick-start">Run the lab →</a><a class="button" href="#map">Explore concepts</a></div>
     </header>
-    <div class="stats"><div class="stat"><strong>17</strong><span>concepts mapped</span></div><div class="stat"><strong>8</strong><span>executable paths</span></div><div class="stat"><strong>30</strong><span>behavior tests</span></div><div class="stat"><strong>0</strong><span>required API keys</span></div></div>
+    <div class="stats"><div class="stat"><strong>17</strong><span>concepts mapped</span></div><div class="stat"><strong>8</strong><span>showcase examples</span></div><div class="stat"><strong>95%+</strong><span>branch coverage gate</span></div><div class="stat"><strong>0</strong><span>required API keys</span></div></div>
 
     <section id="architecture"><span class="section-label">01 · shared architecture</span><h2>Different mechanisms. One inspectable runtime.</h2>
       <p class="section-copy">Both RAG paths preserve provenance and produce decision traces. The other runnable primitives expose mechanism-specific outputs such as cache metrics, graph facts, recalled memory, row provenance, and tool results.</p>
-      <div class="flow"><div class="node"><span class="num">01</span><h3>Question</h3><p>Intent, constraints, scope</p></div><div class="node"><span class="num">02</span><h3>Route</h3><p>Retrieve, graph, table, cache, memory, tool</p></div><div class="node"><span class="num">03</span><h3>Authorize</h3><p>Trust and ACLs before indexing</p></div><div class="node"><span class="num">04</span><h3>Augment</h3><p>Select or compute evidence</p></div><div class="node"><span class="num">05</span><h3>Return</h3><p>Cited RAG answer or structured result</p></div><div class="node"><span class="num">06</span><h3>Evaluate</h3><p>Retrieval and groundedness metrics</p></div></div>
+      <div class="flow"><div class="node"><span class="num">01</span><h3>Question</h3><p>Intent, constraints, scope</p></div><div class="node"><span class="num">02</span><h3>Select</h3><p>Explicit RAG strategy or separately constructed primitive</p></div><div class="node"><span class="num">03</span><h3>Authorize RAG</h3><p>Trust and ACLs before document indexing</p></div><div class="node"><span class="num">04</span><h3>Augment</h3><p>Select or compute evidence</p></div><div class="node"><span class="num">05</span><h3>Return</h3><p>Cited RAG answer or inspectable result</p></div><div class="node"><span class="num">06</span><h3>Evaluate</h3><p>Versioned lexical regression fixture</p></div></div>
     </section>
 
     <div class="map-section" id="map"><div><span class="section-label">02 · complete concept map</span><h2>Choose the knowledge operation, not the trend.</h2>
@@ -88,20 +88,21 @@
         <article class="card" data-family="action retrieval"><span class="tag">umbrella</span><h3>Agentic RAG</h3><p>A bounded controller selects sources, observes, replans, and stops.</p><p class="trade"><b>Requires:</b> budgets, loop detection, and permissions.</p></article>
         <article class="card" data-family="structured"><span class="tag">teaching-scale</span><h3>GraphRAG</h3><p>Local graph evidence plus global community-level reports.</p><p class="trade"><b>Lab:</b> connected communities, not full Microsoft GraphRAG.</p></article>
         <article class="card" data-family="structured"><span class="tag">runnable mini-kag</span><h3>KAG / KG-RAG</h3><p>Use graphs, ontologies, rules, or schemas for explicit reasoning.</p><p class="trade"><b>Boundary:</b> OpenSPG KAG is a specific full stack.</p></article>
-        <article class="card" data-family="structured"><span class="tag">runnable primitive</span><h3>Table augmentation</h3><p>Typed filters and calculations with row-level provenance.</p><p class="trade"><b>Full TAG:</b> combines DB and LM semantic operators.</p></article>
+        <article class="card" data-family="structured"><span class="tag">runnable primitive</span><h3>Table augmentation</h3><p>Validated equality filters and finite calculations with row-index provenance.</p><p class="trade"><b>Full TAG:</b> combines DB and LM semantic operators.</p></article>
         <article class="card" data-family="context"><span class="tag">simulator</span><h3>CAG</h3><p>Preload stable knowledge and reuse a model KV/prefix cache.</p><p class="trade"><b>Lab:</b> context reuse metrics, not fake past_key_values.</p></article>
         <article class="card" data-family="context"><span class="tag">baseline</span><h3>Long context</h3><p>Place the corpus directly in context, with or without retrieval.</p><p class="trade"><b>Watch:</b> token cost and lost-in-the-middle effects.</p></article>
-        <article class="card" data-family="memory"><span class="tag">runnable</span><h3>Memory augmentation</h3><p>Read and write scoped state across interactions.</p><p class="trade"><b>Requires:</b> provenance, correction, TTL, and deletion.</p></article>
-        <article class="card" data-family="action"><span class="tag">runnable</span><h3>Tool augmentation</h3><p>Call allowlisted APIs, search, calculators, code, or SQL.</p><p class="trade"><b>Rule:</b> retrieved text never grants tool authority.</p></article>
+        <article class="card" data-family="memory"><span class="tag">runnable primitive</span><h3>Memory augmentation</h3><p>Append and lexically recall process-local scoped strings.</p><p class="trade"><b>Missing:</b> persistence, provenance, correction, TTL, and deletion.</p></article>
+        <article class="card" data-family="action"><span class="tag">runnable primitive</span><h3>Tool augmentation</h3><p>Call a registered Python function through name and keyword allowlists.</p><p class="trade"><b>Missing:</b> value schemas, authorization, timeout, sandbox, and audit log.</p></article>
         <article class="card" data-family="retrieval"><span class="tag">extension</span><h3>Multimodal RAG</h3><p>Retrieve across text, images, audio, video, tables, and layout.</p><p class="trade"><b>Requires:</b> modality-specific provenance and evaluation.</p></article>
       </div>
     </div></div>
 
     <section id="principles"><div class="honesty"><div><span class="section-label">03 · engineering honesty</span><h2>Claims should match the mechanism.</h2>
       <p class="section-copy">The project deliberately avoids tutorial theater: no API key is needed, TF-IDF is not called a semantic model, and a cached string is not called a model KV cache.</p>
-      <div class="checklist"><div class="check"><span class="tick">✓</span><span>Source trust and ACLs run before ranking.</span></div><div class="check"><span class="tick">✓</span><span>Both RAG answers retain evidence IDs and a decision trace.</span></div><div class="check"><span class="tick">✓</span><span>Teaching simulations are separated from faithful paper reproductions.</span></div><div class="check"><span class="tick">✓</span><span>Retrieval and lexical answer groundedness are executable; wider evaluation layers are documented.</span></div></div></div>
+      <div class="checklist"><div class="check"><span class="tick">✓</span><span>Source trust and ACLs run before indexing in the integrated document-RAG path.</span></div><div class="check"><span class="tick">✓</span><span>Both RAG answers retain evidence IDs and immutable structured traces.</span></div><div class="check"><span class="tick">✓</span><span>Teaching simulations are separated from faithful paper reproductions.</span></div><div class="check"><span class="tick">✓</span><span>A three-case lexical regression fixture is executable; broader evaluation is not claimed.</span></div></div></div>
       <pre class="codebox"><span class="gray">$</span> pip install -e <span class="green">".[dev]"</span>
 <span class="gray">$</span> kal showcase
+<span class="gray">$</span> kal evaluate <span class="green">--check</span>
 
 {
   <span class="green">"naive-rag"</span>: { "citations": [...] },

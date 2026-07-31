@@ -9,6 +9,7 @@ import streamlit as st
 
 from knowledge_aug_lab.catalog import get_catalog
 from knowledge_aug_lab.evaluation import lexical_groundedness
+from knowledge_aug_lab.evaluation_suite import evaluation_report_dict, load_evaluation_fixture, run_evaluation_fixture
 from knowledge_aug_lab.pipelines import KnowledgeAugmentationLab
 from knowledge_aug_lab.presentation import render_trace_step_html
 from knowledge_aug_lab.showcase import run_showcase, sample_documents
@@ -78,8 +79,8 @@ if page == "Concept map":
     metrics = st.columns(4)
     cards = [
         (str(len(catalog)), "concepts mapped"),
-        ("8", "executable paths"),
-        ("30", "behavior tests"),
+        ("8", "showcase examples"),
+        ("95%+", "branch coverage gate"),
         ("0", "required API keys"),
     ]
     for column, (value, label) in zip(metrics, cards, strict=True):
@@ -135,6 +136,8 @@ elif page == "Live RAG lab":
                 render_trace_step_html(index, step),
                 unsafe_allow_html=True,
             )
+            if step.attributes:
+                st.json(asdict(step)["attributes"])
         with st.expander("Inspect evidence"):
             for chunk in result.evidence:
                 st.markdown(f"**{chunk.document_id}** · `{chunk.id}`")
@@ -154,22 +157,51 @@ elif page == "All-family showcase":
                 st.json(details)
 
 else:
-    st.subheader("Evaluation is layered")
+    st.subheader("Versioned lexical regression fixture")
     st.write(
-        "A high retrieval score does not guarantee a correct answer. Measure each layer and "
-        "stratify by the capability a question requires."
+        "The packaged core-retrieval-v1 fixture contains three self-authored public lexical cases. "
+        "It detects deterministic regressions; it is not a benchmark or semantic-quality claim."
     )
+    if st.button("Run packaged fixture", type="primary"):
+        report = run_evaluation_fixture(load_evaluation_fixture())
+        st.json(evaluation_report_dict(report))
+    st.markdown("#### Wider production evaluation requirements")
     rows = [
-        {"Layer": "Retrieval", "Metrics": "Recall@k · Precision@k · MRR · nDCG"},
-        {"Layer": "Context", "Metrics": "Coverage · relevance · redundancy · token budget"},
-        {"Layer": "Answer", "Metrics": "Correctness · groundedness · citation support · abstention"},
-        {"Layer": "Operations", "Metrics": "Plan accuracy · row/path provenance · tool success"},
-        {"Layer": "System", "Metrics": "p50/p95 latency · tokens · cost · cache hit rate"},
-        {"Layer": "Security", "Metrics": "ACL isolation · poisoning · injection · exfiltration"},
+        {
+            "Layer": "Retrieval",
+            "Current": "Recall/Precision@k · RR/MRR · binary nDCG",
+            "Required next": "Held-out external and semantic strata",
+        },
+        {
+            "Layer": "Context",
+            "Current": "Selected IDs · lexical groundedness input",
+            "Required next": "Coverage · relevance · redundancy · token budget",
+        },
+        {
+            "Layer": "Answer",
+            "Current": "Extractive citations · abstention",
+            "Required next": "Correctness · entailment · citation precision/recall",
+        },
+        {
+            "Layer": "Operations",
+            "Current": "Row/path provenance · ToolResult",
+            "Required next": "Plan accuracy · timeouts · side-effect audit",
+        },
+        {
+            "Layer": "System",
+            "Current": "Cache build/hit counters",
+            "Required next": "p50/p95 latency · tokens · cost · reliability",
+        },
+        {
+            "Layer": "Security",
+            "Current": "RAG ACL ordering · boundary regressions",
+            "Required next": "Poisoning · model injection · exfiltration",
+        },
     ]
     st.dataframe(rows, use_container_width=True, hide_index=True)
     st.info(
-        "Security ordering rule: source trust and ACL checks must run before indexing or ranking, not after retrieval."
+        "Security scope: KnowledgeAugmentationLab filters source trust and ACLs before document indexing. "
+        "Standalone graph, table, cache, memory, and tool primitives require caller-provided controls."
     )
     st.markdown("#### Catalog snapshot")
     st.json([asdict(concept) for concept in catalog[:3]])

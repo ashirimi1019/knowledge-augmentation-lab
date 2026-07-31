@@ -9,9 +9,10 @@ PINNED_ACTION = re.compile(r"^\s*uses:\s*[\w.-]+/[\w.-]+(?:/[\w.-]+)?@([0-9a-f]{
 
 
 def test_all_external_actions_are_pinned_to_full_commit_shas() -> None:
+    workflows = [*WORKFLOW_DIR.glob("*.yml"), *WORKFLOW_DIR.glob("*.yaml")]
     uses_lines = [
         line
-        for workflow in WORKFLOW_DIR.glob("*.yml")
+        for workflow in workflows
         for line in workflow.read_text(encoding="utf-8").splitlines()
         if line.lstrip().startswith("uses:")
     ]
@@ -39,7 +40,7 @@ def test_ci_builds_validates_installs_and_smoke_tests_both_distributions() -> No
     workflow = (WORKFLOW_DIR / "ci.yml").read_text(encoding="utf-8")
 
     assert "python -m build" in workflow
-    assert "python -m twine check dist/*" in workflow
+    assert "python -m twine check --strict dist/*" in workflow
     assert "dist/*.whl" in workflow
     assert "dist/*.tar.gz" in workflow
     assert ".venv-wheel/bin/kal catalog --json" in workflow
@@ -55,3 +56,24 @@ def test_security_automation_covers_code_scanning_and_dependency_updates() -> No
     assert "github/codeql-action/analyze@" in codeql
     assert "package-ecosystem: pip" in dependabot
     assert "package-ecosystem: github-actions" in dependabot
+
+
+def test_release_uses_the_complete_contributor_quality_gate() -> None:
+    quality_script = (ROOT / "scripts" / "quality.py").read_text(encoding="utf-8")
+    release_workflow = (WORKFLOW_DIR / "release.yml").read_text(encoding="utf-8")
+
+    for command in (
+        '"ruff", "check", "."',
+        '"ruff", "format", "--check", "."',
+        '"pyright"',
+        '"pytest"',
+        '"--cov=knowledge_aug_lab"',
+        '"--cov-branch"',
+        '"build"',
+        '"twine", "check"',
+    ):
+        assert command in quality_script
+    assert "python scripts/check_release.py" in release_workflow
+    assert "python scripts/quality.py" in release_workflow
+    assert 'gh release create "$GITHUB_REF_NAME" dist/*' in release_workflow
+    assert "cwd=environment" in quality_script
