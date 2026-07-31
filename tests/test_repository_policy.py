@@ -23,6 +23,7 @@ def test_all_external_actions_are_pinned_to_full_commit_shas() -> None:
 def test_ci_declares_every_supported_python_version_and_quality_gate() -> None:
     workflow = (WORKFLOW_DIR / "ci.yml").read_text(encoding="utf-8")
 
+    assert "push:\n    branches: [main]" in workflow
     for version in ("3.10", "3.11", "3.12", "3.13"):
         assert f'"{version}"' in workflow
     for command in (
