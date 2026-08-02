@@ -41,6 +41,7 @@ knowledge_aug_lab = ["fixtures/*.json"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.coverage.run]
