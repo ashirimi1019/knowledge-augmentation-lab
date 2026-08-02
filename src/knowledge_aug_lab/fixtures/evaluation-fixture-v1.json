@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "name": "core-retrieval-v1",
+  "documents": [
+    {
+      "id": "rag",
+      "text": "Retrieval-Augmented Generation retrieves query-relevant evidence before generation and cites source documents.",
+      "metadata": {
+        "scopes": ["public"],
+        "trusted": true
+      }
+    },
+    {
+      "id": "cag",
+      "text": "Cache-Augmented Generation preloads a bounded stable corpus for repeated context reuse without per-query retrieval.",
+      "metadata": {
+        "scopes": ["public"],
+        "trusted": true
+      }
+    },
+    {
+      "id": "graph",
+      "text": "Knowledge graph augmentation uses typed triples and explicit relationships for deterministic multi-hop traversal.",
+      "metadata": {
+        "scopes": ["public"],
+        "trusted": true
+      }
+    },
+    {
+      "id": "table",
+      "text": "Table augmentation computes validated aggregations over structured rows and preserves row provenance.",
+      "metadata": {
+        "scopes": ["public"],
+        "trusted": true
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "rag-grounding",
+      "query": "What retrieves query-relevant evidence before generation?",
+      "relevant_document_ids": ["rag"],
+      "k": 2
+    },
+    {
+      "id": "cag-reuse",
+      "query": "What preloads a bounded stable corpus for repeated context reuse?",
+      "relevant_document_ids": ["cag"],
+      "k": 2
+    },
+    {
+      "id": "graph-relations",
+      "query": "What uses typed triples and explicit relationships for multi-hop traversal?",
+      "relevant_document_ids": ["graph"],
+      "k": 2
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "fixture_name": "core-retrieval-v1",
+  "strategy": "advanced-rag",
+  "cases": [
+    {
+      "case_id": "rag-grounding",
+      "query": "What retrieves query-relevant evidence before generation?",
+      "relevant_document_ids": ["rag"],
+      "retrieved_document_ids": ["rag", "cag"],
+      "citations": ["rag", "cag"],
+      "recall_at_k": 1.0,
+      "precision_at_k": 0.5,
+      "reciprocal_rank": 1.0,
+      "hit_rate_at_k": 1.0,
+      "ndcg_at_k": 1.0,
+      "lexical_groundedness": 0.913043,
+      "trace_steps": ["transform", "hybrid-retrieve", "rerank-filter", "generate"]
+    },
+    {
+      "case_id": "cag-reuse",
+      "query": "What preloads a bounded stable corpus for repeated context reuse?",
+      "relevant_document_ids": ["cag"],
+      "retrieved_document_ids": ["cag", "graph"],
+      "citations": ["cag", "graph"],
+      "recall_at_k": 1.0,
+      "precision_at_k": 0.5,
+      "reciprocal_rank": 1.0,
+      "hit_rate_at_k": 1.0,
+      "ndcg_at_k": 1.0,
+      "lexical_groundedness": 0.96,
+      "trace_steps": ["transform", "hybrid-retrieve", "rerank-filter", "generate"]
+    },
+    {
+      "case_id": "graph-relations",
+      "query": "What uses typed triples and explicit relationships for multi-hop traversal?",
+      "relevant_document_ids": ["graph"],
+      "retrieved_document_ids": ["graph", "cag"],
+      "citations": ["graph", "cag"],
+      "recall_at_k": 1.0,
+      "precision_at_k": 0.5,
+      "reciprocal_rank": 1.0,
+      "hit_rate_at_k": 1.0,
+      "ndcg_at_k": 1.0,
+      "lexical_groundedness": 0.96,
+      "trace_steps": ["transform", "hybrid-retrieve", "rerank-filter", "generate"]
+    }
+  ],
+  "summary": {
+    "case_count": 3,
+    "mean_recall_at_k": 1.0,
+    "mean_precision_at_k": 0.5,
+    "mean_reciprocal_rank": 1.0,
+    "mean_hit_rate_at_k": 1.0,
+    "mean_ndcg_at_k": 1.0,
+    "mean_lexical_groundedness": 0.944348
+  }
+}

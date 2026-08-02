@@ -33,8 +33,28 @@ class NaiveRAGPipeline:
             citations=citations,
             evidence=evidence,
             trace=[
-                TraceStep("chunk", f"split {len(self.documents)} documents into {len(self.chunks)} chunks"),
-                TraceStep("retrieve", f"BM25 selected {len(evidence)} query-relevant chunks"),
-                TraceStep("generate", "extractive generator composed a context-only answer"),
+                TraceStep(
+                    "chunk",
+                    f"split {len(self.documents)} documents into {len(self.chunks)} chunks",
+                    {"document_count": len(self.documents), "chunk_count": len(self.chunks)},
+                ),
+                TraceStep(
+                    "retrieve",
+                    f"BM25 selected {len(evidence)} query-relevant chunks",
+                    {
+                        "retriever": "bm25",
+                        "requested_top_k": top_k,
+                        "selected_chunk_ids": [chunk.id for chunk in evidence],
+                    },
+                ),
+                TraceStep(
+                    "generate",
+                    "extractive generator composed a context-only answer",
+                    {
+                        "generator": "extractive",
+                        "citation_ids": citations,
+                        "abstained": not citations,
+                    },
+                ),
             ],
         )

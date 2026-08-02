@@ -3,13 +3,50 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, NoReturn, cast
 
 
-class FrozenMetadata(dict[str, Any]):
-    """Recursively immutable, JSON/pickle/dataclass-compatible metadata."""
+class FrozenMetadata(Mapping[str, Any]):
+    """Recursively immutable metadata with plain-dict deepcopy serialization."""
+
+    __slots__ = ("_items",)
+
+    def __init__(self, values: Mapping[str, Any]) -> None:
+        if not isinstance(values, Mapping):
+            raise TypeError("metadata must be a mapping")
+        frozen: dict[str, Any] = {}
+        for key, value in values.items():
+            if not isinstance(key, str):
+                raise TypeError("metadata keys must be strings")
+            normalized_key = str(key)
+            if normalized_key in frozen:
+                raise ValueError(f"metadata keys collide after normalization: {normalized_key!r}")
+            frozen[normalized_key] = _freeze_value(value)
+        self._items = tuple(frozen.items())
+
+    def __getitem__(self, key: str) -> Any:
+        for stored_key, value in self._items:
+            if stored_key == key:
+                return value
+        raise KeyError(key)
+
+    def __iter__(self) -> Iterator[str]:
+        return (key for key, _value in self._items)
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def __repr__(self) -> str:
+        return repr(dict(self._items))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        other_mapping = cast(Mapping[object, object], other)
+        return dict(self.items()) == dict(other_mapping.items())
 
     def _immutable(self, *_args: Any, **_kwargs: Any) -> NoReturn:
         raise TypeError("metadata is immutable")
@@ -19,7 +56,6 @@ class FrozenMetadata(dict[str, Any]):
     clear = _immutable
     pop = _immutable
     popitem = _immutable
-    __ior__ = _immutable
 
     def setdefault(self, key: str, default: Any = None, /) -> Any:
         self._immutable(key, default)
@@ -27,11 +63,11 @@ class FrozenMetadata(dict[str, Any]):
     def update(self, *args: Any, **kwargs: Any) -> NoReturn:
         self._immutable(*args, **kwargs)
 
-    def __deepcopy__(self, _memo: dict[int, Any]) -> FrozenMetadata:
-        return self
+    def __deepcopy__(self, memo: dict[int, Any]) -> dict[str, Any]:
+        return deepcopy(dict(self._items), memo)
 
     def __reduce__(self) -> tuple[type[FrozenMetadata], tuple[dict[str, Any]]]:
-        return (type(self), (dict(self),))
+        return (type(self), (dict(self._items),))
 
 
 def _freeze_value(value: Any) -> Any:
@@ -39,8 +75,6 @@ def _freeze_value(value: Any) -> Any:
 
     if isinstance(value, Mapping):
         return _freeze_mapping(cast(Mapping[Any, Any], value))
-    if isinstance(value, (set, frozenset)):
-        return frozenset(_freeze_value(item) for item in cast(set[Any] | frozenset[Any], value))
     if isinstance(value, str):
         return str(value)
     if isinstance(value, bool):
@@ -48,28 +82,22 @@ def _freeze_value(value: Any) -> Any:
     if isinstance(value, int):
         return int(value)
     if isinstance(value, float):
-        return float(value)
-    if isinstance(value, complex):
-        return complex(value)
-    if isinstance(value, bytes):
-        return bytes(value)
+        normalized = float(value)
+        if not math.isfinite(normalized):
+            raise ValueError("metadata value must be finite")
+        return normalized
     if value is None:
         return None
+    if isinstance(value, (bytes, complex, set, frozenset)):
+        value_type = type(cast(object, value)).__name__
+        raise TypeError(f"unsupported metadata value type: {value_type}")
     if isinstance(value, Sequence):
         return tuple(_freeze_value(item) for item in cast(Sequence[Any], value))
     raise TypeError(f"unsupported metadata value type: {type(value).__name__}")
 
 
 def _freeze_mapping(metadata: Mapping[Any, Any]) -> FrozenMetadata:
-    frozen: dict[str, Any] = {}
-    for key, value in metadata.items():
-        if not isinstance(key, str):
-            raise TypeError("metadata keys must be strings")
-        normalized_key = str(key)
-        if normalized_key in frozen:
-            raise ValueError(f"metadata keys collide after normalization: {normalized_key!r}")
-        frozen[normalized_key] = _freeze_value(value)
-    return FrozenMetadata(frozen)
+    return FrozenMetadata(cast(Mapping[str, Any], metadata))
 
 
 def _freeze_metadata(metadata: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -98,6 +126,11 @@ class Document:
 
         object.__setattr__(self, "id", self.id.strip())
         object.__setattr__(self, "metadata", _freeze_metadata(self.metadata))
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> Document:
+        copied = type(self)(self.id, self.text, self.metadata)
+        memo[id(self)] = copied
+        return copied
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +161,11 @@ class Chunk:
         object.__setattr__(self, "id", self.id.strip())
         object.__setattr__(self, "document_id", self.document_id.strip())
         object.__setattr__(self, "metadata", _freeze_metadata(self.metadata))
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> Chunk:
+        copied = type(self)(self.id, self.document_id, self.text, self.start, self.end, self.metadata)
+        memo[id(self)] = copied
+        return copied
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,12 +200,21 @@ class TraceStep:
 
     name: str
     detail: str
+    attributes: Mapping[str, Any] = field(default_factory=_empty_metadata)
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name.strip():
             raise ValueError("trace name cannot be empty")
         if not isinstance(self.detail, str) or not self.detail.strip():
             raise ValueError("trace detail cannot be empty")
+        if not isinstance(self.attributes, Mapping):
+            raise TypeError("trace attributes must be a mapping")
+        object.__setattr__(self, "attributes", _freeze_metadata(self.attributes))
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> TraceStep:
+        copied = type(self)(self.name, self.detail, self.attributes)
+        memo[id(self)] = copied
+        return copied
 
 
 @dataclass(frozen=True, slots=True)

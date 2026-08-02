@@ -2,12 +2,13 @@ import json
 import math
 import pickle
 from collections.abc import Iterator, Sequence
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Any
 
 import pytest
 
-from knowledge_aug_lab.models import AugmentationResult, Chunk, Document, RetrievalResult, TraceStep
+from knowledge_aug_lab.models import AugmentationResult, Chunk, Document, FrozenMetadata, RetrievalResult, TraceStep
 from knowledge_aug_lab.security import filter_authorized_documents
 
 
@@ -44,13 +45,6 @@ class MutableString(str):
 
     def __eq__(self, other: object) -> bool:
         return self.enabled and str.__eq__(self, other)
-
-
-class MutableComplex(complex):
-    enabled = True
-
-    def __eq__(self, other: object) -> bool:
-        return self.enabled and complex.__eq__(self, other)
 
 
 class MutableMetadataSequence(Sequence[Any]):
@@ -96,12 +90,42 @@ def test_document_normalizes_id_and_freezes_metadata() -> None:
 def test_document_metadata_supports_standard_serialization() -> None:
     document = Document("doc", "text", {"scopes": ["public"], "nested": {"trusted": True}})
 
-    assert json.loads(json.dumps(document.metadata)) == {
-        "scopes": ["public"],
-        "nested": {"trusted": True},
+    assert json.loads(json.dumps(asdict(document))) == {
+        "id": "doc",
+        "text": "text",
+        "metadata": {"scopes": ["public"], "nested": {"trusted": True}},
     }
     assert asdict(document)["metadata"]["scopes"] == ("public",)
     assert pickle.loads(pickle.dumps(document)) == document
+
+
+def test_deepcopy_preserves_immutable_model_metadata_and_authorization() -> None:
+    document = Document(
+        "doc",
+        "text",
+        {"scopes": ["public"], "trusted": True, "nested": {"source": "reviewed"}},
+    )
+    copied_document = deepcopy(document)
+    copied_chunk = deepcopy(Chunk("doc#0", "doc", "text", 0, 4, {"nested": {"source": "reviewed"}}))
+    copied_step = deepcopy(TraceStep("retrieve", "selected evidence", {"nested": {"count": 1}}))
+    copied_retrieval = deepcopy(RetrievalResult(copied_chunk, 1.0, 1, "bm25"))
+    copied_result = deepcopy(AugmentationResult("rag", "answer", ["doc"], [copied_chunk], [copied_step]))
+
+    assert isinstance(copied_document.metadata, FrozenMetadata)
+    assert isinstance(copied_chunk.metadata, FrozenMetadata)
+    assert isinstance(copied_step.attributes, FrozenMetadata)
+    assert isinstance(copied_retrieval.chunk.metadata, FrozenMetadata)
+    assert isinstance(copied_result.evidence[0].metadata, FrozenMetadata)
+    assert isinstance(copied_result.trace[0].attributes, FrozenMetadata)
+    assert filter_authorized_documents([copied_document], {"public"}) == [copied_document]
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        copied_document.metadata["trusted"] = False  # type: ignore[index]
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        copied_document.metadata["nested"]["source"] = "forged"  # type: ignore[index]
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        copied_chunk.metadata["nested"]["source"] = "forged"  # type: ignore[index]
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        copied_step.attributes["nested"]["count"] = 2  # type: ignore[index]
 
 
 def test_document_metadata_rejects_setdefault_and_update() -> None:
@@ -111,6 +135,20 @@ def test_document_metadata_rejects_setdefault_and_update() -> None:
         document.metadata.setdefault("scope", "public")  # type: ignore[attr-defined]
     with pytest.raises(TypeError, match="metadata is immutable"):
         document.metadata.update({"scope": "public"})  # type: ignore[attr-defined]
+
+
+def test_frozen_metadata_validates_construction_and_has_value_semantics() -> None:
+    metadata = FrozenMetadata({"nested": {"value": 1}})
+
+    assert len(metadata) == 1
+    assert repr(metadata) == "{'nested': {'value': 1}}"
+    assert metadata == {"nested": {"value": 1}}
+    assert metadata != object()
+    assert isinstance(metadata._items, tuple)
+    with pytest.raises(KeyError):
+        _ = metadata["missing"]
+    with pytest.raises(TypeError, match="metadata must be a mapping"):
+        FrozenMetadata([])  # type: ignore[arg-type]
 
 
 def test_metadata_normalizes_mutable_string_subclasses_before_acl_checks() -> None:
@@ -144,15 +182,20 @@ def test_metadata_snapshots_custom_sequences() -> None:
     assert document.metadata["scopes"] == ("public",)
 
 
-def test_metadata_normalizes_complex_subclasses() -> None:
-    source = MutableComplex(1, 2)
-    document = Document("doc", "text", {"value": source})
-    equivalent = Document("doc", "text", {"value": complex(1, 2)})
+def test_metadata_cannot_be_mutated_through_dict_base_class_descriptors() -> None:
+    document = Document("doc", "text", {"trusted": True, "nested": {"scope": "public"}})
 
-    assert type(document.metadata["value"]) is complex
-    assert document == equivalent
-    source.enabled = False
-    assert document == equivalent
+    with pytest.raises(TypeError):
+        dict.__setitem__(document.metadata, "trusted", False)  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        dict.__setitem__(document.metadata["nested"], "scope", "private")  # type: ignore[arg-type]
+    assert document.metadata == {"trusted": True, "nested": {"scope": "public"}}
+
+
+@pytest.mark.parametrize("value", [complex(1, 2), b"bytes", {"unordered"}, math.inf, -math.inf, math.nan])
+def test_metadata_rejects_non_json_leaf_values(value: object) -> None:
+    with pytest.raises((TypeError, ValueError), match="metadata value"):
+        Document("doc", "text", {"value": value})
 
 
 def test_metadata_rejects_unsupported_mutable_leaf_values() -> None:
@@ -227,6 +270,35 @@ def test_retrieval_result_validates_chunk_score_and_retriever() -> None:
 def test_trace_step_rejects_blank_fields(name: str, detail: str, message: str) -> None:
     with pytest.raises(ValueError, match=message):
         TraceStep(name, detail)
+
+    with pytest.raises(TypeError, match="trace attributes must be a mapping"):
+        TraceStep("name", "detail", [])  # type: ignore[arg-type]
+
+
+def test_trace_step_snapshots_structured_attributes() -> None:
+    source = {"selected_ids": ["doc#0"], "candidate_count": 1}
+    step = TraceStep("retrieve", "selected evidence", source)
+    source["selected_ids"].append("doc#1")
+
+    assert step.attributes == {"selected_ids": ("doc#0",), "candidate_count": 1}
+    assert asdict(step)["attributes"] == {"selected_ids": ("doc#0",), "candidate_count": 1}
+    assert json.loads(json.dumps(asdict(step)["attributes"])) == {
+        "selected_ids": ["doc#0"],
+        "candidate_count": 1,
+    }
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        step.attributes["candidate_count"] = 2  # type: ignore[index]
+
+
+def test_trace_step_attributes_reject_non_json_values_and_dict_base_mutation() -> None:
+    step = TraceStep("retrieve", "selected evidence", {"nested": {"count": 1}})
+
+    with pytest.raises(TypeError):
+        dict.__setitem__(step.attributes, "added", True)  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        dict.__setitem__(step.attributes["nested"], "count", 2)  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="unsupported metadata value type: bytes"):
+        TraceStep("retrieve", "selected evidence", {"payload": b"not-json"})
 
 
 def test_augmentation_result_rejects_duplicate_or_blank_citations() -> None:

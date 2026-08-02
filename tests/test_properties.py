@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import math
 import string
 
@@ -94,24 +93,25 @@ def test_property_metadata_sequences_are_detached(values: list[int]) -> None:
     assert document.metadata["values"] == snapshot
 
 
-def test_adversarial_metadata_scalar_and_container_branches_are_immutable() -> None:
+def test_adversarial_json_metadata_scalar_branches_are_immutable() -> None:
     document = Document(
         "doc",
         "text",
         {
-            "set": {"a", "b"},
             "bool": True,
             "int": 1,
             "float": 1.5,
-            "complex": 1 + 2j,
-            "bytes": b"data",
             "none": None,
         },
     )
 
-    assert copy.deepcopy(document.metadata) is document.metadata
-    assert document.metadata["set"] == frozenset({"a", "b"})
-    assert type(document.metadata["complex"]) is complex
+    assert document.metadata == {"bool": True, "int": 1, "float": 1.5, "none": None}
+
+
+@pytest.mark.parametrize("value", [{"a", "b"}, 1 + 2j, b"data"])
+def test_adversarial_non_json_metadata_branches_fail_closed(value: object) -> None:
+    with pytest.raises(TypeError, match="unsupported metadata value type"):
+        Document("doc", "text", {"value": value})
 
 
 def test_adversarial_metadata_keys_fail_closed() -> None:
