@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "base_commit_sha": "<full Git commit SHA>",
+  "reviewed_head_commit_sha": "<full Git commit SHA>",
+  "tree_sha": "<full Git tree SHA>",
+  "file_count": "<nonnegative integer>",
+  "hashing_algorithm": "sha256",
+  "fingerprint_format": "kal-git-tree-v1",
+  "fingerprint_value": "<64 lowercase hexadecimal characters>",
+  "exact_command": "<exact source_fingerprint.py command>",
+  "reviewer_identity": "<reviewer name or stable identifier>",
+  "review_date": "<YYYY-MM-DD>",
+  "signature_reference": null
+}
