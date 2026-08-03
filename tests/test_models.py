@@ -58,6 +58,10 @@ class MutableMetadataSequence(Sequence[Any]):
         return self.values[index]
 
 
+class CustomMetadataList(list[Any]):
+    pass
+
+
 class UnsupportedMutableLeaf:
     pass
 
@@ -174,12 +178,37 @@ def test_metadata_normalizes_mutable_string_mapping_keys() -> None:
     assert type(stored_inner_key) is str
 
 
-def test_metadata_snapshots_custom_sequences() -> None:
-    source = MutableMetadataSequence(["public"])
-    document = Document("doc", "text", {"scopes": source})
-    source.values.append("private")
+@pytest.mark.parametrize(
+    "value",
+    [
+        bytearray(b"AB"),
+        memoryview(b"AB"),
+        range(3),
+        {"unordered"},
+        frozenset({"unordered"}),
+        iter([1, 2]),
+        (item for item in [1, 2]),
+        MutableMetadataSequence(["public"]),
+        CustomMetadataList(["public"]),
+    ],
+)
+def test_metadata_rejects_unsupported_container_implementations(value: object) -> None:
+    with pytest.raises(TypeError, match=f"unsupported metadata value type: {type(value).__name__}"):
+        Document("doc", "text", {"value": value})
 
-    assert document.metadata["scopes"] == ("public",)
+
+def test_metadata_rejects_nested_unsupported_sequence_values() -> None:
+    with pytest.raises(TypeError, match="unsupported metadata value type: bytearray"):
+        Document("doc", "text", {"nested": [{"payload": bytearray(b"AB")}]})
+
+
+def test_metadata_recursively_freezes_lists_and_supported_tuples() -> None:
+    source = {"list": [{"tuple": ([1, 2],)}]}
+    document = Document("doc", "text", source)
+    source["list"][0]["tuple"][0].append(3)
+    source["list"].append({"forged": True})
+
+    assert document.metadata == {"list": ({"tuple": ((1, 2),)},)}
 
 
 def test_metadata_cannot_be_mutated_through_dict_base_class_descriptors() -> None:

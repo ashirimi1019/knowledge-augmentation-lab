@@ -123,3 +123,43 @@ def test_tool_result_recursively_snapshots_output() -> None:
     assert result.output == {"values": (1, 2)}
     with pytest.raises(TypeError, match="metadata is immutable"):
         result.output["values"] = (0,)  # type: ignore[index]
+
+
+@pytest.mark.parametrize("value", [bytearray(b"AB"), memoryview(b"AB"), range(3)])
+def test_tool_registry_rejects_unsupported_argument_snapshots_before_execution(value: object) -> None:
+    called = False
+
+    def inspect_payload(payload: object) -> None:
+        nonlocal called
+        called = True
+
+    tools = ToolRegistry()
+    tools.register("inspect_payload", inspect_payload)
+
+    with pytest.raises(TypeError, match=f"unsupported metadata value type: {type(value).__name__}"):
+        tools.call("inspect_payload", payload=value)
+    assert called is False
+
+
+def test_tool_registry_rejects_nested_unsupported_output_snapshots() -> None:
+    tools = ToolRegistry()
+    tools.register("unsupported_output", lambda: {"nested": [memoryview(b"AB")]})
+
+    with pytest.raises(TypeError, match="unsupported metadata value type: memoryview"):
+        tools.call("unsupported_output")
+
+
+def test_tool_audit_snapshot_detaches_nested_lists_and_mappings() -> None:
+    arguments = {"nested": {"values": [1, 2]}}
+    output = {"nested": {"values": [3, 4]}}
+    tools = ToolRegistry()
+    tools.register("snapshot", lambda payload: output)
+
+    result = tools.call("snapshot", payload=arguments)
+    arguments["nested"]["values"].append(99)
+    arguments["nested"]["forged"] = True
+    output["nested"]["values"].append(99)
+    output["nested"]["forged"] = True
+
+    assert result.arguments == {"payload": {"nested": {"values": (1, 2)}}}
+    assert result.output == {"nested": {"values": (3, 4)}}
