@@ -92,11 +92,13 @@ def _freeze_value(value: Any) -> Any:
         return normalized
     if value is None:
         return None
-    if isinstance(value, (bytes, complex, set, frozenset)):
+    if isinstance(value, (bytes, bytearray, memoryview, range, complex, set, frozenset)):
         value_type = type(cast(object, value)).__name__
         raise TypeError(f"unsupported metadata value type: {value_type}")
-    if isinstance(value, Sequence):
-        return tuple(_freeze_value(item) for item in cast(Sequence[Any], value))
+    if type(value) is list:
+        return tuple(_freeze_value(item) for item in cast(list[Any], value))
+    if type(value) is tuple:
+        return tuple(_freeze_value(item) for item in cast(tuple[Any, ...], value))
     raise TypeError(f"unsupported metadata value type: {type(value).__name__}")
 
 

@@ -46,10 +46,9 @@ class TableResult:
     provenance: tuple[int, ...]
 
     def __post_init__(self) -> None:
-        try:
-            provenance = tuple(self.provenance)
-        except TypeError as exc:
-            raise TypeError("provenance must be an iterable of row indices") from exc
+        if type(self.provenance) not in {list, tuple}:
+            raise TypeError("provenance must be a list or tuple of row indices")
+        provenance = tuple(self.provenance)
         if any(isinstance(index, bool) or not isinstance(index, int) or index < 0 for index in provenance):
             raise ValueError("provenance must contain nonnegative integer row indices")
         if len(provenance) != len(set(provenance)):

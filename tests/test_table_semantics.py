@@ -6,6 +6,10 @@ import pytest
 from knowledge_aug_lab.augmentation import TableResult, TableStore
 
 
+class CustomProvenanceList(list[int]):
+    pass
+
+
 def test_count_does_not_require_numeric_column_values() -> None:
     table = TableStore([{"team": "red"}, {"team": "blue"}, {"team": "red"}])
 
@@ -28,13 +32,22 @@ def test_table_result_snapshots_untyped_provenance_inputs() -> None:
 
 
 def test_table_result_rejects_invalid_or_duplicate_provenance_indices() -> None:
-    with pytest.raises(TypeError, match="iterable of row indices"):
+    with pytest.raises(TypeError, match="list or tuple of row indices"):
         TableResult(value=1.0, rows_used=1, provenance=1)  # type: ignore[arg-type]
     for provenance in ([True], [-1], ["0"]):
         with pytest.raises(ValueError, match="nonnegative integer row indices"):
             TableResult(value=1.0, rows_used=1, provenance=provenance)  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="row indices must be unique"):
         TableResult(value=2.0, rows_used=2, provenance=[0, 0])  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [range(1), iter([0]), (index for index in [0]), bytearray(b"\x00"), CustomProvenanceList([0])],
+)
+def test_table_result_rejects_arbitrary_provenance_iterables(provenance: object) -> None:
+    with pytest.raises(TypeError, match="list or tuple of row indices"):
+        TableResult(value=1.0, rows_used=1, provenance=provenance)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("operation", ["sum", "mean", "min", "max"])
