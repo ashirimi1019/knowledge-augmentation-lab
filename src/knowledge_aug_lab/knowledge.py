@@ -5,6 +5,15 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from dataclasses import dataclass
 
+from knowledge_aug_lab.text import tokenize
+
+
+def _contains_contiguous_terms(query_terms: list[str], entity_terms: list[str]) -> bool:
+    if not entity_terms or len(entity_terms) > len(query_terms):
+        return False
+    width = len(entity_terms)
+    return any(query_terms[index : index + width] == entity_terms for index in range(len(query_terms) - width + 1))
+
 
 @dataclass(frozen=True, slots=True)
 class Fact:
@@ -94,8 +103,8 @@ class KnowledgeGraph:
     def match_entities(self, query: str) -> list[str]:
         if not isinstance(query, str) or not query.strip():
             raise ValueError("query cannot be empty")
-        normalized = query.casefold()
-        return [name for key, name in self._names.items() if key in normalized]
+        query_terms = tokenize(query.casefold())
+        return [name for key, name in self._names.items() if _contains_contiguous_terms(query_terms, tokenize(key))]
 
     def community_reports(self) -> list[CommunityReport]:
         """Create deterministic toy community reports from connected components.

@@ -47,6 +47,16 @@ _SAMPLE_DOCUMENTS = [
 ]
 
 
+def _positive_integer(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a positive integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="kal",
@@ -62,7 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
     demo = subparsers.add_parser("demo", help="Run a grounded RAG demo")
     demo.add_argument("query")
     demo.add_argument("--strategy", choices=["naive-rag", "advanced-rag"], default="advanced-rag")
-    demo.add_argument("--top-k", type=int, default=3)
+    demo.add_argument("--top-k", type=_positive_integer, default=3)
 
     evaluate = subparsers.add_parser("evaluate", help="Run the versioned deterministic evaluation fixture")
     evaluate.add_argument("--strategy", choices=["naive-rag", "advanced-rag"], default="advanced-rag")

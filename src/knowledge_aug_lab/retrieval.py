@@ -213,7 +213,13 @@ class HybridRetriever:
         chunks: dict[str, Chunk] = {}
         candidate_count = max(top_k * 3, top_k)
         for retriever, weight in zip(self.retrievers, self.weights, strict=True):
-            for result in retriever.retrieve(query, candidate_count):
+            seen_chunk_ids: set[str] = set()
+            for expected_rank, result in enumerate(retriever.retrieve(query, candidate_count), start=1):
+                if result.rank != expected_rank:
+                    raise ValueError("retriever ranks must be contiguous and ordered from 1")
+                if result.chunk.id in seen_chunk_ids:
+                    raise ValueError(f"retriever returned duplicate chunk id: {result.chunk.id!r}")
+                seen_chunk_ids.add(result.chunk.id)
                 if result.score <= 0:
                     continue
                 existing = chunks.get(result.chunk.id)

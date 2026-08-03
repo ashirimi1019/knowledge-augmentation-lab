@@ -13,6 +13,7 @@ class FrozenMetadata(Mapping[str, Any]):
     """Recursively immutable metadata with plain-dict deepcopy serialization."""
 
     __slots__ = ("_items",)
+    _items: tuple[tuple[str, Any], ...]
 
     def __init__(self, values: Mapping[str, Any]) -> None:
         if not isinstance(values, Mapping):
@@ -25,7 +26,10 @@ class FrozenMetadata(Mapping[str, Any]):
             if normalized_key in frozen:
                 raise ValueError(f"metadata keys collide after normalization: {normalized_key!r}")
             frozen[normalized_key] = _freeze_value(value)
-        self._items = tuple(frozen.items())
+        object.__setattr__(self, "_items", tuple(frozen.items()))
+
+    def __setattr__(self, _name: str, _value: Any) -> NoReturn:
+        raise TypeError("metadata is immutable")
 
     def __getitem__(self, key: str) -> Any:
         for stored_key, value in self._items:
@@ -102,6 +106,12 @@ def _freeze_mapping(metadata: Mapping[Any, Any]) -> FrozenMetadata:
 
 def _freeze_metadata(metadata: Mapping[str, Any]) -> Mapping[str, Any]:
     return _freeze_mapping(metadata)
+
+
+def freeze_json_value(value: Any) -> Any:
+    """Detach and recursively freeze one finite JSON-compatible value."""
+
+    return _freeze_value(value)
 
 
 def _empty_metadata() -> dict[str, Any]:
@@ -249,6 +259,13 @@ class AugmentationResult:
             raise ValueError("citations must be unique")
         if any(not isinstance(item, Chunk) for item in evidence):
             raise TypeError("evidence must contain only Chunk values")
+        evidence_chunk_ids = [item.id for item in evidence]
+        if len(evidence_chunk_ids) != len(set(evidence_chunk_ids)):
+            raise ValueError("evidence chunk ids must be unique")
+        evidence_document_ids = {item.document_id for item in evidence}
+        unsupported_citations = sorted(set(citations) - evidence_document_ids)
+        if unsupported_citations:
+            raise ValueError(f"citations must reference evidence documents: {unsupported_citations}")
         if any(not isinstance(item, TraceStep) for item in trace):
             raise TypeError("trace must contain only TraceStep values")
         object.__setattr__(self, "citations", citations)

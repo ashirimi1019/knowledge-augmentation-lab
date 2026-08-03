@@ -1,0 +1,3 @@
+# Build tools used by CI, release automation, and sdist smoke installation.
+setuptools>=69
+wheel>=0.45

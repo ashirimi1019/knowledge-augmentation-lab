@@ -1,8 +1,16 @@
 import pytest
 
-from knowledge_aug_lab.models import Chunk, Document
+from knowledge_aug_lab.models import Chunk, Document, RetrievalResult
 from knowledge_aug_lab.retrieval import BM25Retriever, HybridRetriever, TfidfRetriever
 from knowledge_aug_lab.text import RecursiveChunker
+
+
+class StubRetriever:
+    def __init__(self, results: list[RetrievalResult]) -> None:
+        self.results = results
+
+    def retrieve(self, query: str, top_k: int = 5) -> list[RetrievalResult]:
+        return list(self.results)
 
 
 def test_hybrid_rrf_combines_sparse_and_vector_space_rankings() -> None:
@@ -34,3 +42,31 @@ def test_hybrid_rejects_conflicting_chunks_with_the_same_id() -> None:
 
     with pytest.raises(ValueError, match="conflicting chunks share id 'shared#0'"):
         hybrid.retrieve("alpha")
+
+
+def test_hybrid_rejects_duplicate_chunk_ids_within_one_ranking() -> None:
+    chunk = Chunk("shared#0", "shared", "alpha evidence", 0, 14)
+    retriever = StubRetriever(
+        [
+            RetrievalResult(chunk, 2.0, 1, "stub"),
+            RetrievalResult(chunk, 1.0, 2, "stub"),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="retriever returned duplicate chunk id: 'shared#0'"):
+        HybridRetriever([retriever], rrf_k=0).retrieve("alpha")
+
+
+@pytest.mark.parametrize("ranks", [(1, 1), (2, 1), (1, 3)])
+def test_hybrid_requires_contiguous_ordered_source_ranks(ranks: tuple[int, int]) -> None:
+    first = Chunk("first#0", "first", "alpha one", 0, 9)
+    second = Chunk("second#0", "second", "alpha two", 0, 9)
+    retriever = StubRetriever(
+        [
+            RetrievalResult(first, 2.0, ranks[0], "stub"),
+            RetrievalResult(second, 1.0, ranks[1], "stub"),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="retriever ranks must be contiguous and ordered from 1"):
+        HybridRetriever([retriever]).retrieve("alpha")

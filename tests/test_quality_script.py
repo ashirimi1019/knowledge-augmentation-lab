@@ -19,7 +19,7 @@ def test_quality_main_reaches_every_gate_and_smokes_exactly_two_artifacts(tmp_pa
 
     def fake_run(*command: str, **_kwargs: object) -> None:
         commands.append(command)
-        if command[-2:] == ("-m", "build"):
+        if command[-3:] == ("-m", "build", "--no-isolation"):
             dist.mkdir()
             (dist / "package-0.2.0-py3-none-any.whl").touch()
             (dist / "package-0.2.0.tar.gz").touch()
@@ -36,4 +36,5 @@ def test_quality_main_reaches_every_gate_and_smokes_exactly_two_artifacts(tmp_pa
     ]
     assert "--cov-branch" in flattened
     assert "--strict" in flattened
+    assert any(command[-3:] == ("-m", "build", "--no-isolation") for command in commands)
     assert [path.suffix for path in smoked] == [".whl", ".gz"]

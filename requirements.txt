@@ -1,4 +1,4 @@
 # Core package has no runtime dependencies.
-# Install the visual explorer with: pip install -e ".[app]"
+# For reproducible local setup, use the version-matched hashed constraints documented in README.md.
 streamlit>=1.36
 pandas>=2.0

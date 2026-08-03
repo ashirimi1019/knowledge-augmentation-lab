@@ -134,6 +134,21 @@ def _exact_keys(value: Mapping[str, object], expected: set[str], label: str) -> 
         raise ValueError(f"{label} fields must be exactly: {', '.join(sorted(expected))}")
 
 
+def _evaluation_metadata(value: object, label: str) -> dict[str, object]:
+    metadata = _mapping(value, label)
+    if metadata.get("trusted") is not True:
+        raise ValueError(f"{label} trusted must be exactly true")
+    raw_scopes = metadata.get("scopes")
+    if not isinstance(raw_scopes, list) or not raw_scopes:
+        raise ValueError(f"{label} scopes must be a nonempty JSON array")
+    scopes = tuple(_nonempty_string(scope, f"{label} scope") for scope in cast(list[object], raw_scopes))
+    if len(scopes) != len(set(scopes)):
+        raise ValueError(f"{label} scopes must be unique")
+    if "public" not in scopes:
+        raise ValueError(f"{label} scopes must include 'public'")
+    return {**metadata, "trusted": True, "scopes": scopes}
+
+
 def load_evaluation_fixture(path: str | Path | None = None) -> EvaluationFixture:
     """Load and validate a versioned evaluation corpus and query set."""
 
@@ -148,7 +163,7 @@ def load_evaluation_fixture(path: str | Path | None = None) -> EvaluationFixture
     for index, raw_document in enumerate(_list(payload["documents"], "evaluation documents")):
         document = _mapping(raw_document, f"evaluation document {index}")
         _exact_keys(document, {"id", "text", "metadata"}, f"evaluation document {index}")
-        metadata = _mapping(document["metadata"], f"evaluation document {index} metadata")
+        metadata = _evaluation_metadata(document["metadata"], f"evaluation document {index} metadata")
         documents.append(
             Document(
                 _nonempty_string(document["id"], f"evaluation document {index} id"),
@@ -244,7 +259,10 @@ def run_evaluation_fixture(
                 reciprocal_rank=round(metrics.reciprocal_rank, 6),
                 hit_rate_at_k=round(metrics.hit_rate_at_k, 6),
                 ndcg_at_k=round(ndcg_at_k(list(retrieved_ids), relevant_ids, case.k), 6),
-                lexical_groundedness=round(lexical_groundedness(result.answer, context), 6),
+                lexical_groundedness=round(
+                    lexical_groundedness(result.answer, context, citation_ids=result.citations),
+                    6,
+                ),
                 trace_steps=tuple(step.name for step in result.trace),
             )
         )

@@ -177,6 +177,34 @@ def test_evaluation_fixture_rejects_duplicate_case_ids(tmp_path) -> None:
         load_evaluation_fixture(path)
 
 
+@pytest.mark.parametrize(
+    ("metadata", "message"),
+    [
+        ({"scopes": ["public"]}, "metadata trusted must be exactly true"),
+        ({"trusted": False, "scopes": ["public"]}, "metadata trusted must be exactly true"),
+        ({"trusted": 1, "scopes": ["public"]}, "metadata trusted must be exactly true"),
+        ({"trusted": True}, "metadata scopes must be a nonempty JSON array"),
+        ({"trusted": True, "scopes": "public"}, "metadata scopes must be a nonempty JSON array"),
+        ({"trusted": True, "scopes": []}, "metadata scopes must be a nonempty JSON array"),
+        ({"trusted": True, "scopes": [" "]}, "metadata scope must be a nonempty string"),
+        ({"trusted": True, "scopes": ["private"]}, "metadata scopes must include 'public'"),
+        ({"trusted": True, "scopes": ["public", "public"]}, "metadata scopes must be unique"),
+    ],
+)
+def test_evaluation_fixture_rejects_invalid_authorization_metadata(tmp_path, metadata, message: str) -> None:
+    payload = _valid_fixture_payload()
+    documents = payload["documents"]
+    assert isinstance(documents, list)
+    document = documents[0]
+    assert isinstance(document, dict)
+    document["metadata"] = metadata
+    path = tmp_path / "invalid-metadata.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        load_evaluation_fixture(path)
+
+
 def test_evaluation_json_boundaries_reject_invalid_paths_and_payloads(tmp_path) -> None:
     invalid_json = tmp_path / "invalid.json"
     invalid_json.write_text("{", encoding="utf-8")

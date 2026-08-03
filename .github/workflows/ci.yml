@@ -25,7 +25,10 @@ jobs:
           python-version: "3.13"
           cache: pip
       - name: Install development environment
-        run: python -m pip install -e ".[dev]"
+        run: |
+          python -m pip install --require-hashes -r constraints/build.txt
+          python -m pip install --require-hashes -r constraints/py313.txt
+          python -m pip install --no-build-isolation --no-deps -e .
       - name: Lint
         run: ruff check .
       - name: Check formatting
@@ -41,7 +44,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        include:
+          - python-version: "3.10"
+            constraints: constraints/py310.txt
+          - python-version: "3.11"
+            constraints: constraints/py311.txt
+          - python-version: "3.12"
+            constraints: constraints/py312.txt
+          - python-version: "3.13"
+            constraints: constraints/py313.txt
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,7 +62,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install development environment
-        run: python -m pip install -e ".[dev]"
+        run: |
+          python -m pip install --require-hashes -r constraints/build.txt
+          python -m pip install --require-hashes -r ${{ matrix.constraints }}
+          python -m pip install --no-build-isolation --no-deps -e .
       - name: Test
         run: pytest
       - name: Smoke-test CLI
@@ -69,18 +83,21 @@ jobs:
           python-version: "3.13"
           cache: pip
       - name: Install build tooling
-        run: python -m pip install "build>=1.2" "twine>=6.2,<7"
+        run: |
+          python -m pip install --require-hashes -r constraints/build.txt
+          python -m pip install --require-hashes -r constraints/py313.txt
       - name: Build wheel and source distribution
-        run: python -m build
+        run: python -m build --no-isolation
       - name: Validate distributions
         run: python -m twine check --strict dist/*
       - name: Install and smoke-test wheel
         run: |
           python -m venv .venv-wheel
-          .venv-wheel/bin/python -m pip install dist/*.whl
+          .venv-wheel/bin/python -m pip install --no-deps dist/*.whl
           .venv-wheel/bin/kal catalog --json > /dev/null
       - name: Install and smoke-test source distribution
         run: |
           python -m venv .venv-sdist
-          .venv-sdist/bin/python -m pip install dist/*.tar.gz
+          .venv-sdist/bin/python -m pip install --require-hashes -r constraints/build.txt
+          .venv-sdist/bin/python -m pip install --no-build-isolation --no-deps dist/*.tar.gz
           .venv-sdist/bin/kal showcase > /dev/null

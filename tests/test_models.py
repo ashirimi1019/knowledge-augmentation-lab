@@ -192,6 +192,13 @@ def test_metadata_cannot_be_mutated_through_dict_base_class_descriptors() -> Non
     assert document.metadata == {"trusted": True, "nested": {"scope": "public"}}
 
 
+def test_metadata_rejects_internal_storage_reassignment() -> None:
+    metadata = Document("doc", "text", {"trusted": True}).metadata
+
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        metadata._items = (("trusted", False),)  # type: ignore[attr-defined]
+
+
 @pytest.mark.parametrize("value", [complex(1, 2), b"bytes", {"unordered"}, math.inf, -math.inf, math.nan])
 def test_metadata_rejects_non_json_leaf_values(value: object) -> None:
     with pytest.raises((TypeError, ValueError), match="metadata value"):
@@ -310,6 +317,20 @@ def test_augmentation_result_rejects_duplicate_or_blank_citations() -> None:
         AugmentationResult("rag", "answer", [" "], [chunk], [trace])
     with pytest.raises(ValueError, match="citations must be nonempty strings"):
         AugmentationResult("rag", "answer", [[]], [chunk], [trace])  # type: ignore[list-item]
+
+
+def test_augmentation_result_rejects_citations_without_supporting_evidence() -> None:
+    chunk = valid_chunk()
+
+    with pytest.raises(ValueError, match=r"citations must reference evidence documents: \['forged-source'\]"):
+        AugmentationResult("rag", "unsupported [forged-source]", ["forged-source"], [chunk], [])
+
+
+def test_augmentation_result_rejects_duplicate_evidence_chunk_ids() -> None:
+    chunk = valid_chunk()
+
+    with pytest.raises(ValueError, match="evidence chunk ids must be unique"):
+        AugmentationResult("rag", "answer", ["doc"], [chunk, chunk], [])
 
 
 def test_augmentation_result_validates_public_fields() -> None:

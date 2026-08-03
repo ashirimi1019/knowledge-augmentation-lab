@@ -30,7 +30,7 @@ The default profile is intentionally dependency-light and deterministic. It runs
 | **CAG mechanics** | Bounded corpus preload → context reuse → cold/hit counters | Runnable simulation | Not a model KV cache |
 | **Memory augmentation** | Scoped in-process writes → lexical recall | Runnable primitive | No persistence, deletion, provenance, or TTL |
 | **Table augmentation** | Validated equality filters → finite aggregation → row indices | Runnable primitive | Database half only; not TAG-Bench |
-| **Tool augmentation** | Name/kwarg allowlist → inspectable `ToolResult` | Runnable primitive | No value schema, timeout, sandbox, or audit log |
+| **Tool augmentation** | Name/kwarg allowlist → finite JSON-compatible immutable `ToolResult` | Runnable primitive | No semantic per-tool schema, timeout, sandbox, or durable audit log |
 | **Evaluation** | Versioned fixture → RR/MRR, Recall/Precision, nDCG, lexical groundedness | Runnable regression | Three self-authored lexical cases; not a benchmark |
 | **Security** | Trust + ACL filtering before document RAG indexing | Runnable boundary | Applies to `KnowledgeAugmentationLab`, not every standalone primitive |
 
@@ -80,7 +80,10 @@ source .venv/bin/activate
 Install and execute all implemented families:
 
 ```bash
-pip install -e ".[dev]"
+# This example uses Python 3.11. Choose py310, py312, or py313 for those interpreters.
+python -m pip install --require-hashes -r constraints/build.txt
+python -m pip install --require-hashes -r constraints/py311.txt
+python -m pip install --no-build-isolation --no-deps -e .
 kal showcase
 ```
 
@@ -102,7 +105,6 @@ kal catalog --json
 Run the visual lab:
 
 ```bash
-pip install -e ".[app]"
 streamlit run app.py
 ```
 
