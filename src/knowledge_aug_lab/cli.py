@@ -57,6 +57,12 @@ def _positive_integer(value: str) -> int:
     return parsed
 
 
+def _non_empty_text(value: str) -> str:
+    if not value.strip():
+        raise argparse.ArgumentTypeError("query must contain non-whitespace characters")
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="kal",
@@ -70,7 +76,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("showcase", help="Run every implemented family and emit JSON")
 
     demo = subparsers.add_parser("demo", help="Run a grounded RAG demo")
-    demo.add_argument("query")
+    demo.add_argument("query", type=_non_empty_text)
     demo.add_argument("--strategy", choices=["naive-rag", "advanced-rag"], default="advanced-rag")
     demo.add_argument("--top-k", type=_positive_integer, default=3)
 
