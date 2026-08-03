@@ -14,7 +14,7 @@
       "reciprocal_rank": 1.0,
       "hit_rate_at_k": 1.0,
       "ndcg_at_k": 1.0,
-      "lexical_groundedness": 0.913043,
+      "lexical_groundedness": 1.0,
       "trace_steps": ["transform", "hybrid-retrieve", "rerank-filter", "generate"]
     },
     {
@@ -28,7 +28,7 @@
       "reciprocal_rank": 1.0,
       "hit_rate_at_k": 1.0,
       "ndcg_at_k": 1.0,
-      "lexical_groundedness": 0.96,
+      "lexical_groundedness": 1.0,
       "trace_steps": ["transform", "hybrid-retrieve", "rerank-filter", "generate"]
     },
     {
@@ -42,7 +42,7 @@
       "reciprocal_rank": 1.0,
       "hit_rate_at_k": 1.0,
       "ndcg_at_k": 1.0,
-      "lexical_groundedness": 0.96,
+      "lexical_groundedness": 1.0,
       "trace_steps": ["transform", "hybrid-retrieve", "rerank-filter", "generate"]
     }
   ],
@@ -53,6 +53,6 @@
     "mean_reciprocal_rank": 1.0,
     "mean_hit_rate_at_k": 1.0,
     "mean_ndcg_at_k": 1.0,
-    "mean_lexical_groundedness": 0.944348
+    "mean_lexical_groundedness": 1.0
   }
 }

@@ -1,5 +1,9 @@
+from copy import deepcopy
+
+import pytest
+
 from knowledge_aug_lab.augmentation import ContextCache, MemoryStore, TableStore, ToolRegistry
-from knowledge_aug_lab.models import Document
+from knowledge_aug_lab.models import Document, FrozenMetadata
 
 
 def test_cag_preloads_corpus_once_and_reuses_the_same_context() -> None:
@@ -33,7 +37,7 @@ def test_table_augmented_generation_executes_typed_aggregation() -> None:
 
     assert result.value == 150
     assert result.rows_used == 2
-    assert result.provenance == [0, 1]
+    assert result.provenance == (0, 1)
 
 
 def test_memory_augmented_generation_recalls_relevant_session_facts() -> None:
@@ -70,3 +74,52 @@ def test_tool_augmented_generation_calls_allowlisted_tool_with_structured_argume
     assert result.name == "estimate_cost"
     assert result.output == 1.0
     assert result.arguments == {"tokens": 2_500_000, "rate": 0.40}
+
+
+def test_tool_result_recursively_snapshots_arguments() -> None:
+    tools = ToolRegistry()
+    tools.register("inspect_config", lambda config: config["limits"][0])
+    config = {"limits": [10]}
+
+    result = tools.call("inspect_config", config=config)
+    config["limits"][0] = 0
+
+    assert result.output == 10
+    assert result.arguments["config"]["limits"] == (10,)
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        result.arguments["config"]["limits"] = (0,)  # type: ignore[index]
+
+    copied = deepcopy(result)
+    assert isinstance(copied.arguments, FrozenMetadata)
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        copied.arguments["config"]["limits"] = (0,)  # type: ignore[index]
+
+
+def test_tool_registry_snapshots_arguments_before_tool_execution() -> None:
+    tools = ToolRegistry()
+
+    def mutate_config(config: dict[str, list[int]]) -> int:
+        config["limits"][0] = 0
+        return config["limits"][0]
+
+    tools.register("mutate_config", mutate_config)
+    config = {"limits": [10]}
+
+    result = tools.call("mutate_config", config=config)
+
+    assert result.output == 0
+    assert config == {"limits": [0]}
+    assert result.arguments["config"]["limits"] == (10,)
+
+
+def test_tool_result_recursively_snapshots_output() -> None:
+    tools = ToolRegistry()
+    output = {"values": [1, 2]}
+    tools.register("mutable_output", lambda: output)
+
+    result = tools.call("mutable_output")
+    output["values"].append(3)
+
+    assert result.output == {"values": (1, 2)}
+    with pytest.raises(TypeError, match="metadata is immutable"):
+        result.output["values"] = (0,)  # type: ignore[index]

@@ -179,7 +179,8 @@ def get_catalog() -> list[Concept]:
             "Select and call allowlisted external functions, APIs, search, or code execution.",
             "Real-time facts, exact calculations, and actions.",
             "Permissions, injection, side effects, and tool failures require controls.",
-            "Allowlisted tool/keyword names and inspectable ToolResult; no value schema, timeout, or sandbox.",
+            "Allowlisted tool/keyword names and finite JSON-compatible immutable ToolResult; "
+            "no semantic per-tool schema, timeout, or sandbox.",
         ),
         Concept(
             "table-augmented-generation",

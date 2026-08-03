@@ -118,6 +118,9 @@ elif page == "Live RAG lab":
     )
     top_k = st.slider("Evidence chunks", 1, 4, 3)
     if st.button("Run traced pipeline", type="primary"):
+        if not question.strip():
+            st.warning("Enter a question before running the pipeline.")
+            st.stop()
         lab = KnowledgeAugmentationLab(sample_documents(), scopes={"public"})
         result = lab.run(strategy or "advanced-rag", question, top_k=top_k)
         st.markdown("### Grounded answer")
@@ -125,6 +128,7 @@ elif page == "Live RAG lab":
         score = lexical_groundedness(
             result.answer,
             " ".join(chunk.text for chunk in result.evidence),
+            citation_ids=result.citations,
         )
         a, b, c = st.columns(3)
         a.metric("Groundedness", f"{score:.0%}")

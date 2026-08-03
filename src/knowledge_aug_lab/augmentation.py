@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import inspect
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from copy import deepcopy
 from dataclasses import dataclass
 from numbers import Real
 from typing import Any
 
-from knowledge_aug_lab.models import Document
+from knowledge_aug_lab.models import Document, FrozenMetadata, freeze_json_value
 from knowledge_aug_lab.text import tokenize
 
 
@@ -42,7 +43,18 @@ class ContextCache:
 class TableResult:
     value: float
     rows_used: int
-    provenance: list[int]
+    provenance: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        try:
+            provenance = tuple(self.provenance)
+        except TypeError as exc:
+            raise TypeError("provenance must be an iterable of row indices") from exc
+        if any(isinstance(index, bool) or not isinstance(index, int) or index < 0 for index in provenance):
+            raise ValueError("provenance must contain nonnegative integer row indices")
+        if len(provenance) != len(set(provenance)):
+            raise ValueError("provenance row indices must be unique")
+        object.__setattr__(self, "provenance", provenance)
 
 
 class TableStore:
@@ -53,7 +65,11 @@ class TableStore:
             raise TypeError("rows must be a list")
         if any(not isinstance(row, dict) for row in rows):
             raise TypeError("every row must be a dictionary")
-        self.rows = [dict(row) for row in rows]
+        self._rows = tuple(deepcopy(row) for row in rows)
+
+    @property
+    def rows(self) -> tuple[dict[str, Any], ...]:
+        return tuple(deepcopy(row) for row in self._rows)
 
     def aggregate(
         self,
@@ -68,15 +84,15 @@ class TableStore:
         if where is not None and not isinstance(where, dict):
             raise TypeError("where must be a dictionary")
 
-        filters = where or {}
+        filters = deepcopy(where) if where is not None else {}
         selected = [
             (index, row)
-            for index, row in enumerate(self.rows)
+            for index, row in enumerate(self._rows)
             if all(row.get(key) == value for key, value in filters.items())
         ]
         if not selected:
             raise ValueError("no rows match the requested filters")
-        provenance = [index for index, _ in selected]
+        provenance = tuple(index for index, _ in selected)
         if any(column not in row for _, row in selected):
             raise ValueError(f"column {column!r} is not present in every selected row")
 
@@ -164,8 +180,19 @@ class MemoryStore:
 @dataclass(frozen=True, slots=True)
 class ToolResult:
     name: str
-    arguments: dict[str, Any]
+    arguments: Mapping[str, Any]
     output: Any
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.arguments, Mapping):
+            raise TypeError("tool arguments must be a mapping")
+        object.__setattr__(self, "arguments", FrozenMetadata(self.arguments))
+        object.__setattr__(self, "output", freeze_json_value(self.output))
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> ToolResult:
+        copied = type(self)(self.name, self.arguments, deepcopy(self.output, memo))
+        memo[id(self)] = copied
+        return copied
 
 
 def _inspect_tool_signature(
@@ -265,8 +292,9 @@ class ToolRegistry:
         unexpected = sorted(set(arguments) - spec.allowed_arguments)
         if unexpected:
             raise ValueError(f"unexpected tool arguments: {', '.join(unexpected)}")
+        audit_arguments = FrozenMetadata(arguments)
         output = spec.function(**arguments)
-        return ToolResult(name=name, arguments=dict(arguments), output=output)
+        return ToolResult(name=name, arguments=audit_arguments, output=output)
 
     @staticmethod
     def _infer_spec(name: str, function: Callable[..., Any]) -> ToolSpec:

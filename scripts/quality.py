@@ -15,6 +15,7 @@ from knowledge_aug_lab import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
+BUILD_CONSTRAINTS = ROOT / "constraints" / "build.txt"
 
 
 def isolated_subprocess_environment(source: dict[str, str] | None = None) -> dict[str, str]:
@@ -51,12 +52,26 @@ def smoke_install(distribution: Path) -> None:
         python = executable_directory / ("python.exe" if os.name == "nt" else "python")
         kal = executable_directory / ("kal.exe" if os.name == "nt" else "kal")
         clean_environment = isolated_subprocess_environment()
+        install_arguments = ["--no-deps"]
+        if distribution.name.endswith(".tar.gz"):
+            run(
+                str(python),
+                "-m",
+                "pip",
+                "install",
+                "--require-hashes",
+                "-r",
+                str(BUILD_CONSTRAINTS),
+                cwd=environment,
+                env=clean_environment,
+            )
+            install_arguments.insert(0, "--no-build-isolation")
         run(
             str(python),
             "-m",
             "pip",
             "install",
-            "--no-deps",
+            *install_arguments,
             str(distribution),
             cwd=environment,
             env=clean_environment,
@@ -104,7 +119,7 @@ def main() -> int:
 
     shutil.rmtree(DIST, ignore_errors=True)
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    run(sys.executable, "-m", "build")
+    run(sys.executable, "-m", "build", "--no-isolation")
     distributions = sorted(DIST.iterdir())
     wheels = [path for path in distributions if path.suffix == ".whl"]
     sources = [path for path in distributions if path.name.endswith(".tar.gz")]

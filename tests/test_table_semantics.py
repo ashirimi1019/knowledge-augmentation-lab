@@ -1,8 +1,9 @@
 import math
+from fractions import Fraction
 
 import pytest
 
-from knowledge_aug_lab.augmentation import TableStore
+from knowledge_aug_lab.augmentation import TableResult, TableStore
 
 
 def test_count_does_not_require_numeric_column_values() -> None:
@@ -12,7 +13,28 @@ def test_count_does_not_require_numeric_column_values() -> None:
 
     assert result.value == 2.0
     assert result.rows_used == 2
-    assert result.provenance == [0, 2]
+    assert result.provenance == (0, 2)
+    with pytest.raises(AttributeError):
+        result.provenance.append(999)  # type: ignore[attr-defined]
+
+
+def test_table_result_snapshots_untyped_provenance_inputs() -> None:
+    provenance = [0, 2]
+
+    result = TableResult(value=2.0, rows_used=2, provenance=provenance)  # type: ignore[arg-type]
+    provenance.append(999)
+
+    assert result.provenance == (0, 2)
+
+
+def test_table_result_rejects_invalid_or_duplicate_provenance_indices() -> None:
+    with pytest.raises(TypeError, match="iterable of row indices"):
+        TableResult(value=1.0, rows_used=1, provenance=1)  # type: ignore[arg-type]
+    for provenance in ([True], [-1], ["0"]):
+        with pytest.raises(ValueError, match="nonnegative integer row indices"):
+            TableResult(value=1.0, rows_used=1, provenance=provenance)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="row indices must be unique"):
+        TableResult(value=2.0, rows_used=2, provenance=[0, 0])  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("operation", ["sum", "mean", "min", "max"])
@@ -31,11 +53,31 @@ def test_table_store_validates_rows(rows: object) -> None:
 
 
 def test_table_store_copies_input_rows() -> None:
-    rows = [{"value": 2}]
+    rows = [{"value": 2, "nested": {"label": "original"}}]
     table = TableStore(rows)
     rows[0]["value"] = 100
+    rows[0]["nested"]["label"] = "forged"
 
     assert table.aggregate("value", "sum").value == 2.0
+    assert table.rows[0]["nested"]["label"] == "original"
+    visible_rows = table.rows
+    visible_rows[0]["value"] = 100
+    assert table.aggregate("value", "sum").value == 2.0
+
+
+def test_table_store_matches_nested_list_filters_without_representation_drift() -> None:
+    table = TableStore([{"value": 2, "tags": ["x"]}, {"value": 3, "tags": ["y"]}])
+
+    result = table.aggregate("value", "sum", where={"tags": ["x"]})
+
+    assert result.value == 2.0
+    assert result.provenance == (0,)
+
+
+def test_table_store_preserves_fraction_aggregation_compatibility() -> None:
+    table = TableStore([{"value": Fraction(1, 3)}, {"value": Fraction(2, 3)}])
+
+    assert table.aggregate("value", "sum").value == 1.0
 
 
 @pytest.mark.parametrize("column", ["", " ", None, 1])
@@ -56,7 +98,7 @@ def test_aggregation_validates_operation_filters_and_empty_selection() -> None:
 
 @pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf, 10**400])
 def test_aggregation_rejects_non_finite_or_overflowing_values(value: object) -> None:
-    with pytest.raises(ValueError, match="finite numeric values"):
+    with pytest.raises(ValueError, match="finite"):
         TableStore([{"value": value}]).aggregate("value", "sum")
 
 

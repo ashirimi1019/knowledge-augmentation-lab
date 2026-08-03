@@ -44,7 +44,7 @@ Sources: [KAG paper](https://arxiv.org/abs/2409.13731) · [OpenSPG KAG](https://
 
 ### Table-Augmented Generation (TAG)
 
-The TAG database paradigm is more than embedding CSV rows. A database performs relational operations while an LM performs semantic operators that ordinary SQL cannot express. The runnable `TableStore` here demonstrates validated equality filters, finite numeric aggregation, and row-index provenance—the deterministic database half of the architecture.
+The TAG database paradigm is more than embedding CSV rows. A database performs relational operations while an LM performs semantic operators that ordinary SQL cannot express. The runnable `TableStore` here demonstrates validated equality filters, finite `Real` numeric aggregation, detached copies of caller-owned structured rows, and immutable row-index provenance—the deterministic database half of the architecture.
 
 Sources: [TAG paper](https://arxiv.org/abs/2408.14717) · [TAG-Bench](https://github.com/TAG-Research/TAG-Bench)
 
@@ -74,7 +74,7 @@ The lab implements process-local scoped append and lexical relevance-ranked reca
 
 ### Tool-Augmented Generation
 
-A model emits a typed request to an external capability and conditions later reasoning on the observation. Tool authority must come from the application, never from retrieved text. The lab allowlists tool and keyword names, validates callable compatibility, and returns an inspectable `ToolResult`. It does not enforce value schemas, timeouts, sandboxes, authorization, or durable audit logs.
+A model emits a typed request to an external capability and conditions later reasoning on the observation. Tool authority must come from the application, never from retrieved text. The lab allowlists tool and keyword names, validates callable compatibility, requires finite JSON-compatible argument and output values, and returns a recursively immutable `ToolResult` snapshot. It does not enforce semantic per-tool schemas, timeouts, sandboxes, authorization, or durable audit logs.
 
 Sources: [ReAct](https://arxiv.org/abs/2210.03629) · [Toolformer](https://arxiv.org/abs/2302.04761)
 

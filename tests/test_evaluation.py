@@ -27,3 +27,10 @@ def test_retrieval_metrics_deduplicate_ranked_document_ids() -> None:
     assert retrieval.recall_at_k == 1.0
     assert retrieval.precision_at_k == 1.0
     assert retrieval.reciprocal_rank == 1.0
+
+
+def test_lexical_groundedness_ignores_only_recognized_citation_markers() -> None:
+    context = "Evidence sentence."
+
+    assert lexical_groundedness("Evidence sentence. [source-123]", context, citation_ids=["source-123"]) == 1.0
+    assert lexical_groundedness("Evidence sentence. [unsupported]", context, citation_ids=["source-123"]) < 1.0

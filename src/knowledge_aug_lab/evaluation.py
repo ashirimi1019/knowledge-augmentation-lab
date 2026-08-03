@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from knowledge_aug_lab.text import tokenize
@@ -80,10 +81,13 @@ def ndcg_at_k(
     return dcg / idcg if idcg else 0.0
 
 
-def lexical_groundedness(answer: str, context: str) -> float:
-    """Fraction of answer content terms supported by supplied context."""
+def lexical_groundedness(answer: str, context: str, citation_ids: Sequence[str] = ()) -> float:
+    """Fraction of rendered answer content terms supported by context."""
 
-    answer_terms = {_stem(term) for term in tokenize(answer) if term not in _STOPWORDS}
+    answer_content = answer
+    for citation_id in citation_ids:
+        answer_content = answer_content.replace(f"[{citation_id}]", "")
+    answer_terms = {_stem(term) for term in tokenize(answer_content) if term not in _STOPWORDS}
     context_terms = {_stem(term) for term in tokenize(context) if term not in _STOPWORDS}
     return len(answer_terms & context_terms) / len(answer_terms) if answer_terms else 0.0
 

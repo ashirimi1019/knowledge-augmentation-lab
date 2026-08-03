@@ -43,3 +43,24 @@ def test_non_positive_hops_return_no_facts() -> None:
 
     assert graph.neighborhood("RAG", max_hops=0) == []
     assert graph.neighborhood("RAG", max_hops=-1) == []
+
+
+@pytest.mark.parametrize("query", ["How is storage managed?", "What stage runs next?", "Open the cage."])
+def test_graph_entity_matching_rejects_substring_false_positives(query: str) -> None:
+    graph = KnowledgeGraph([("RAG", "contrasts", "TAG"), ("CAG", "uses", "Context cache")])
+
+    assert graph.match_entities(query) == []
+
+
+def test_graph_entity_matching_supports_exact_terms_and_contiguous_phrases() -> None:
+    graph = KnowledgeGraph([("RAG", "uses", "Context cache")])
+
+    assert graph.match_entities("Compare rag with a context cache") == ["RAG", "Context cache"]
+    assert graph.match_entities("Compare context reusable cache") == []
+
+
+def test_graph_entity_matching_uses_identical_unicode_casefold_normalization() -> None:
+    graph = KnowledgeGraph([("Straße", "connects", "Knowledge")])
+
+    assert graph.match_entities("Explain Straße") == ["Straße"]
+    assert graph.match_entities("Explain STRASSE") == ["Straße"]

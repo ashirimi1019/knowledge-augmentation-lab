@@ -92,7 +92,7 @@
         <article class="card" data-family="context"><span class="tag">simulator</span><h3>CAG</h3><p>Preload stable knowledge and reuse a model KV/prefix cache.</p><p class="trade"><b>Lab:</b> context reuse metrics, not fake past_key_values.</p></article>
         <article class="card" data-family="context"><span class="tag">baseline</span><h3>Long context</h3><p>Place the corpus directly in context, with or without retrieval.</p><p class="trade"><b>Watch:</b> token cost and lost-in-the-middle effects.</p></article>
         <article class="card" data-family="memory"><span class="tag">runnable primitive</span><h3>Memory augmentation</h3><p>Append and lexically recall process-local scoped strings.</p><p class="trade"><b>Missing:</b> persistence, provenance, correction, TTL, and deletion.</p></article>
-        <article class="card" data-family="action"><span class="tag">runnable primitive</span><h3>Tool augmentation</h3><p>Call a registered Python function through name and keyword allowlists.</p><p class="trade"><b>Missing:</b> value schemas, authorization, timeout, sandbox, and audit log.</p></article>
+        <article class="card" data-family="action"><span class="tag">runnable primitive</span><h3>Tool augmentation</h3><p>Call a registered Python function through name and keyword allowlists with finite JSON-compatible immutable records.</p><p class="trade"><b>Missing:</b> semantic per-tool schemas, authorization, timeout, sandbox, and durable audit logs.</p></article>
         <article class="card" data-family="retrieval"><span class="tag">extension</span><h3>Multimodal RAG</h3><p>Retrieve across text, images, audio, video, tables, and layout.</p><p class="trade"><b>Requires:</b> modality-specific provenance and evaluation.</p></article>
       </div>
     </div></div>
@@ -100,7 +100,9 @@
     <section id="principles"><div class="honesty"><div><span class="section-label">03 · engineering honesty</span><h2>Claims should match the mechanism.</h2>
       <p class="section-copy">The project deliberately avoids tutorial theater: no API key is needed, TF-IDF is not called a semantic model, and a cached string is not called a model KV cache.</p>
       <div class="checklist"><div class="check"><span class="tick">✓</span><span>Source trust and ACLs run before indexing in the integrated document-RAG path.</span></div><div class="check"><span class="tick">✓</span><span>Both RAG answers retain evidence IDs and immutable structured traces.</span></div><div class="check"><span class="tick">✓</span><span>Teaching simulations are separated from faithful paper reproductions.</span></div><div class="check"><span class="tick">✓</span><span>A three-case lexical regression fixture is executable; broader evaluation is not claimed.</span></div></div></div>
-      <pre class="codebox"><span class="gray">$</span> pip install -e <span class="green">".[dev]"</span>
+      <pre class="codebox"><span class="gray">$</span> python -m pip install --require-hashes -r <span class="green">constraints/build.txt</span>
+<span class="gray">$</span> python -m pip install --require-hashes -r <span class="green">constraints/py311.txt</span>
+<span class="gray">$</span> python -m pip install --no-build-isolation --no-deps -e <span class="green">.</span>
 <span class="gray">$</span> kal showcase
 <span class="gray">$</span> kal evaluate <span class="green">--check</span>
 
