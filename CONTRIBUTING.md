@@ -41,6 +41,10 @@ python scripts/compile_constraints.py
 
 Pull requests must keep required GitHub checks green. `main` requires strict up-to-date status checks, linear history, resolved conversations, and immutable Action SHAs.
 
+## Audit source fingerprints
+
+Post-release reviews fingerprint an explicit commit's exact Git tree rather than a mutable checkout or platform-dependent archive. Use `python scripts/source_fingerprint.py <full-commit-sha>` and retain its commit SHA, tree SHA, file count, algorithm, format, digest, and exact verification command in a machine-readable attestation. See [Reproducible source fingerprints](docs/source-fingerprints.md) for the canonical byte stream and [`audit-attestation-template.json`](docs/audit-attestation-template.json) for the attestation fields.
+
 ## Evaluation changes
 
 Never update the packaged baseline solely to make CI pass. Explain case-level metric changes and version the fixture when corpus, labels, or conventions change. See [Reproducible evaluation](docs/evaluation.md).

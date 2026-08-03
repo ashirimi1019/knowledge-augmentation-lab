@@ -8,6 +8,7 @@ All notable changes to this project are documented here. Versions follow [Semant
 
 - Private vulnerability-reporting policy and per-Python hash-pinned development/application constraints with separately pinned build tools.
 - Adversarial regressions for malformed RRF rankings, forged citations, graph substring collisions, authorization metadata, mutable audit records, and expected CLI/app input errors.
+- Canonical Git-tree source fingerprinting with verification mode and a machine-readable audit-attestation template.
 
 ### Changed
 
