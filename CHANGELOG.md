@@ -14,7 +14,7 @@ All notable changes to this project are documented here. Versions follow [Semant
 
 - Hybrid RRF now rejects duplicate chunk contributions and malformed source ranks; results require evidence-backed citations and unique evidence chunks.
 - Graph entity lookup uses complete contiguous token phrases, and lexical groundedness excludes only recognized rendered citation markers.
-- Table/tool snapshots are detached and immutable where publicly recorded, including pre-execution tool arguments and recursively frozen finite JSON-compatible outputs.
+- Table/tool snapshots are detached and immutable where publicly recorded; tool arguments and outputs use a dedicated exact-built-in recursive allowlist that rejects behavior-bearing mappings and subclasses, while document/trace metadata retains its separate normalization policy.
 - Evaluation fixtures fail closed unless documents are trusted and public; the deterministic groundedness baseline is corrected from citation-format-distorted values to `1.0`.
 - CI and release builds use hash-pinned per-interpreter environments and explicitly avoid unpinned PEP 517 build isolation.
 

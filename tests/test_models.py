@@ -1,6 +1,7 @@
 import json
 import math
 import pickle
+from collections import UserDict
 from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from dataclasses import asdict
@@ -324,6 +325,14 @@ def test_trace_step_snapshots_structured_attributes() -> None:
     }
     with pytest.raises(TypeError, match="metadata is immutable"):
         step.attributes["candidate_count"] = 2  # type: ignore[index]
+
+
+def test_document_and_trace_metadata_retain_general_mapping_compatibility() -> None:
+    document = Document("doc", "text", UserDict({"nested": UserDict({"trusted": True})}))
+    step = TraceStep("retrieve", "selected evidence", UserDict({"nested": UserDict({"count": 1})}))
+
+    assert document.metadata == {"nested": {"trusted": True}}
+    assert step.attributes == {"nested": {"count": 1}}
 
 
 def test_trace_step_attributes_reject_non_json_values_and_dict_base_mutation() -> None:

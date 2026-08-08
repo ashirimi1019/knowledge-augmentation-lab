@@ -34,6 +34,8 @@ The default profile is intentionally dependency-light and deterministic. It runs
 | **Evaluation** | Versioned fixture → RR/MRR, Recall/Precision, nDCG, lexical groundedness | Runnable regression | Three self-authored lexical cases; not a benchmark |
 | **Security** | Trust + ACL filtering before document RAG indexing | Runnable boundary | Applies to `KnowledgeAugmentationLab`, not every standalone primitive |
 
+**Tool-value boundary.** `ToolRegistry` recursively accepts only exact built-in `dict` values with exact `str` keys, exact built-in `list` and `tuple`, exact `str`, `bool`, `int`, finite `float`, and `None`. Lists and tuples are recorded as immutable tuples; dictionaries are recorded as `FrozenMetadata`. Custom mappings and container/scalar subclasses—including `defaultdict`, `UserDict`, and mapping proxies—fail closed before tool execution when supplied as arguments, and fail result construction when returned as outputs. Arguments are snapshotted before the callable runs, while the callable receives the original supported values; this preserves ordinary caller-owned dictionary mutation without allowing behavior-bearing containers to produce a different execution view. Document metadata and trace attributes use a separate general metadata-normalization boundary and are not narrowed by this tool-only policy.
+
 > **Why the labels matter:** Self-RAG, CRAG, Microsoft GraphRAG, OpenSPG KAG, database TAG, and KV-cache CAG are paper- or framework-specific. A generic prompt loop is not automatically Self-RAG, and caching a Python string is not a true model KV cache. The [taxonomy](docs/taxonomy.md) makes those boundaries explicit.
 
 ## Architecture
