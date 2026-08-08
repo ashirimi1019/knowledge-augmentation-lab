@@ -110,10 +110,37 @@ def _freeze_metadata(metadata: Mapping[str, Any]) -> Mapping[str, Any]:
     return _freeze_mapping(metadata)
 
 
-def freeze_json_value(value: Any) -> Any:
-    """Detach and recursively freeze one finite JSON-compatible value."""
+def freeze_tool_value(value: Any, *, allow_frozen_metadata: bool = False) -> Any:
+    """Detach and freeze one strict finite tool argument or output value."""
 
-    return _freeze_value(value)
+    if type(value) is FrozenMetadata:
+        if allow_frozen_metadata:
+            return value
+        raise TypeError("unsupported tool value type: FrozenMetadata")
+    if type(value) is dict:
+        frozen: dict[str, Any] = {}
+        for key, item in cast(dict[Any, Any], value).items():
+            if type(key) is not str:
+                raise TypeError("tool dictionary keys must be exact strings")
+            frozen[key] = freeze_tool_value(item)
+        return FrozenMetadata(frozen)
+    if type(value) is list:
+        return tuple(freeze_tool_value(item) for item in cast(list[Any], value))
+    if type(value) is tuple:
+        return tuple(freeze_tool_value(item) for item in cast(tuple[Any, ...], value))
+    if type(value) is str:
+        return value
+    if type(value) is bool:
+        return value
+    if type(value) is int:
+        return value
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError("tool float values must be finite")
+        return value
+    if value is None:
+        return None
+    raise TypeError(f"unsupported tool value type: {type(value).__name__}")
 
 
 def _empty_metadata() -> dict[str, Any]:

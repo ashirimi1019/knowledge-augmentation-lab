@@ -74,7 +74,9 @@ The lab implements process-local scoped append and lexical relevance-ranked reca
 
 ### Tool-Augmented Generation
 
-A model emits a typed request to an external capability and conditions later reasoning on the observation. Tool authority must come from the application, never from retrieved text. The lab allowlists tool and keyword names, validates callable compatibility, requires finite JSON-compatible argument and output values, and returns a recursively immutable `ToolResult` snapshot. It does not enforce semantic per-tool schemas, timeouts, sandboxes, authorization, or durable audit logs.
+A model emits a typed request to an external capability and conditions later reasoning on the observation. Tool authority must come from the application, never from retrieved text. The lab allowlists tool and keyword names, validates callable compatibility, and snapshots arguments before invocation.
+
+The recursive tool-value domain is deliberately narrower than general document or trace metadata. It accepts only exact built-in `dict` values with exact `str` keys, exact built-in `list` and `tuple`, exact `str`, `bool`, `int`, finite `float`, and `None`. It rejects arbitrary `Mapping` implementations, `defaultdict`, `UserDict`, mapping proxies, and custom mapping, list, tuple, string, or numeric subclasses. `FrozenMetadata` is accepted only as an exact type for internal/idempotent `ToolResult` argument reconstruction, not as a caller argument nested inside kwargs or as a tool output. Supported dictionaries and sequences are detached into recursively immutable `FrozenMetadata`/tuple snapshots; ordinary exact dictionaries are still passed to the callable itself, so a tool may mutate caller-owned data while the audit record retains its pre-call values. Output validation occurs after invocation and therefore cannot roll back tool side effects. The lab does not enforce semantic per-tool schemas, timeouts, sandboxes, authorization, or durable audit logs.
 
 Sources: [ReAct](https://arxiv.org/abs/2210.03629) · [Toolformer](https://arxiv.org/abs/2302.04761)
 

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from numbers import Real
 from typing import Any
 
-from knowledge_aug_lab.models import Document, FrozenMetadata, freeze_json_value
+from knowledge_aug_lab.models import Document, freeze_tool_value
 from knowledge_aug_lab.text import tokenize
 
 
@@ -185,8 +185,12 @@ class ToolResult:
     def __post_init__(self) -> None:
         if not isinstance(self.arguments, Mapping):
             raise TypeError("tool arguments must be a mapping")
-        object.__setattr__(self, "arguments", FrozenMetadata(self.arguments))
-        object.__setattr__(self, "output", freeze_json_value(self.output))
+        object.__setattr__(
+            self,
+            "arguments",
+            freeze_tool_value(self.arguments, allow_frozen_metadata=True),
+        )
+        object.__setattr__(self, "output", freeze_tool_value(self.output))
 
     def __deepcopy__(self, memo: dict[int, Any]) -> ToolResult:
         copied = type(self)(self.name, self.arguments, deepcopy(self.output, memo))
@@ -291,7 +295,7 @@ class ToolRegistry:
         unexpected = sorted(set(arguments) - spec.allowed_arguments)
         if unexpected:
             raise ValueError(f"unexpected tool arguments: {', '.join(unexpected)}")
-        audit_arguments = FrozenMetadata(arguments)
+        audit_arguments = freeze_tool_value(arguments)
         output = spec.function(**arguments)
         return ToolResult(name=name, arguments=audit_arguments, output=output)
 

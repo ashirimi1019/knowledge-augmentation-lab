@@ -1,9 +1,58 @@
+import math
+from collections import UserDict, defaultdict
+from collections.abc import Iterator, Mapping
 from copy import deepcopy
+from types import MappingProxyType
 
 import pytest
 
-from knowledge_aug_lab.augmentation import ContextCache, MemoryStore, TableStore, ToolRegistry
+from knowledge_aug_lab.augmentation import ContextCache, MemoryStore, TableStore, ToolRegistry, ToolResult
 from knowledge_aug_lab.models import Document, FrozenMetadata
+
+
+class StatefulToolMapping(Mapping[str, int]):
+    def __init__(self) -> None:
+        self.reads = 0
+
+    def __getitem__(self, key: str) -> int:
+        if key != "amount":
+            raise KeyError(key)
+        self.reads += 1
+        return 1 if self.reads == 1 else 999
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(("amount",))
+
+    def __len__(self) -> int:
+        return 1
+
+
+class CustomToolDict(dict[str, object]):
+    pass
+
+
+class CustomToolList(list[object]):
+    pass
+
+
+class CustomToolTuple(tuple[object, ...]):
+    pass
+
+
+class CustomToolString(str):
+    pass
+
+
+class CustomToolInt(int):
+    pass
+
+
+class CustomToolFloat(float):
+    pass
+
+
+class CustomFrozenMetadata(FrozenMetadata):
+    pass
 
 
 def test_cag_preloads_corpus_once_and_reuses_the_same_context() -> None:
@@ -112,6 +161,118 @@ def test_tool_registry_snapshots_arguments_before_tool_execution() -> None:
     assert result.arguments["config"]["limits"] == (10,)
 
 
+def test_tool_registry_rejects_stateful_mapping_before_execution() -> None:
+    called = False
+
+    def inspect_amount(payload: Mapping[str, int]) -> int:
+        nonlocal called
+        called = True
+        return payload["amount"]
+
+    tools = ToolRegistry()
+    tools.register("inspect_amount", inspect_amount)
+
+    with pytest.raises(TypeError, match="unsupported tool value type: StatefulToolMapping"):
+        tools.call("inspect_amount", payload=StatefulToolMapping())
+    assert called is False
+
+
+def test_tool_registry_rejects_custom_mapping_nested_in_plain_dictionary() -> None:
+    called = False
+
+    def inspect_payload(payload: object) -> None:
+        nonlocal called
+        called = True
+
+    tools = ToolRegistry()
+    tools.register("inspect_payload", inspect_payload)
+
+    with pytest.raises(TypeError, match="unsupported tool value type: StatefulToolMapping"):
+        tools.call("inspect_payload", payload={"nested": StatefulToolMapping()})
+    assert called is False
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        UserDict({"amount": 1}),
+        defaultdict(int, {"amount": 1}),
+        MappingProxyType({"amount": 1}),
+        CustomToolDict({"amount": 1}),
+    ],
+)
+def test_tool_registry_rejects_non_builtin_mapping_arguments_before_execution(value: object) -> None:
+    called = False
+
+    def inspect_payload(payload: object) -> None:
+        nonlocal called
+        called = True
+
+    tools = ToolRegistry()
+    tools.register("inspect_payload", inspect_payload)
+
+    with pytest.raises(TypeError, match=f"unsupported tool value type: {type(value).__name__}"):
+        tools.call("inspect_payload", payload=value)
+    assert called is False
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        CustomToolList([1]),
+        CustomToolTuple((1,)),
+        CustomToolString("value"),
+        CustomToolInt(1),
+        CustomToolFloat(1.0),
+        CustomFrozenMetadata({"amount": 1}),
+    ],
+)
+def test_tool_registry_rejects_behavior_bearing_value_subclasses(value: object) -> None:
+    called = False
+
+    def inspect_payload(payload: object) -> None:
+        nonlocal called
+        called = True
+
+    tools = ToolRegistry()
+    tools.register("inspect_payload", inspect_payload)
+
+    with pytest.raises(TypeError, match=f"unsupported tool value type: {type(value).__name__}"):
+        tools.call("inspect_payload", payload=value)
+    assert called is False
+
+
+def test_tool_registry_rejects_string_subclass_dictionary_keys() -> None:
+    called = False
+
+    def inspect_payload(payload: object) -> None:
+        nonlocal called
+        called = True
+
+    tools = ToolRegistry()
+    tools.register("inspect_payload", inspect_payload)
+
+    with pytest.raises(TypeError, match="tool dictionary keys must be exact strings"):
+        tools.call("inspect_payload", payload={CustomToolString("amount"): 1})
+    assert called is False
+
+
+@pytest.mark.parametrize("value", [math.inf, -math.inf, math.nan])
+def test_tool_registry_rejects_nonfinite_float_arguments_before_execution(value: float) -> None:
+    called = False
+
+    def inspect_payload(payload: float) -> None:
+        nonlocal called
+        called = True
+
+    tools = ToolRegistry()
+    tools.register("inspect_payload", inspect_payload)
+
+    with pytest.raises(ValueError, match="tool float values must be finite"):
+        tools.call("inspect_payload", payload=value)
+    assert called is False
+
+
 def test_tool_result_recursively_snapshots_output() -> None:
     tools = ToolRegistry()
     output = {"values": [1, 2]}
@@ -125,6 +286,22 @@ def test_tool_result_recursively_snapshots_output() -> None:
         result.output["values"] = (0,)  # type: ignore[index]
 
 
+def test_tool_registry_rejects_frozen_metadata_returned_by_tool() -> None:
+    tools = ToolRegistry()
+    tools.register("frozen_output", lambda: FrozenMetadata({"amount": 1}))
+
+    with pytest.raises(TypeError, match="unsupported tool value type: FrozenMetadata"):
+        tools.call("frozen_output")
+
+
+def test_tool_registry_rejects_custom_mapping_output() -> None:
+    tools = ToolRegistry()
+    tools.register("custom_output", lambda: StatefulToolMapping())
+
+    with pytest.raises(TypeError, match="unsupported tool value type: StatefulToolMapping"):
+        tools.call("custom_output")
+
+
 @pytest.mark.parametrize("value", [bytearray(b"AB"), memoryview(b"AB"), range(3)])
 def test_tool_registry_rejects_unsupported_argument_snapshots_before_execution(value: object) -> None:
     called = False
@@ -136,7 +313,7 @@ def test_tool_registry_rejects_unsupported_argument_snapshots_before_execution(v
     tools = ToolRegistry()
     tools.register("inspect_payload", inspect_payload)
 
-    with pytest.raises(TypeError, match=f"unsupported metadata value type: {type(value).__name__}"):
+    with pytest.raises(TypeError, match=f"unsupported tool value type: {type(value).__name__}"):
         tools.call("inspect_payload", payload=value)
     assert called is False
 
@@ -145,7 +322,7 @@ def test_tool_registry_rejects_nested_unsupported_output_snapshots() -> None:
     tools = ToolRegistry()
     tools.register("unsupported_output", lambda: {"nested": [memoryview(b"AB")]})
 
-    with pytest.raises(TypeError, match="unsupported metadata value type: memoryview"):
+    with pytest.raises(TypeError, match="unsupported tool value type: memoryview"):
         tools.call("unsupported_output")
 
 
@@ -163,3 +340,62 @@ def test_tool_audit_snapshot_detaches_nested_lists_and_mappings() -> None:
 
     assert result.arguments == {"payload": {"nested": {"values": (1, 2)}}}
     assert result.output == {"nested": {"values": (3, 4)}}
+
+
+def test_tool_registry_accepts_exact_finite_json_values_and_intentional_tuples() -> None:
+    payload = {
+        "string": "value",
+        "boolean": True,
+        "integer": 7,
+        "float": 1.25,
+        "none": None,
+        "list": [1, "two"],
+        "tuple": (False, 3.5),
+        "dictionary": {"nested": [None]},
+    }
+    tools = ToolRegistry()
+    tools.register("echo", lambda value: value)
+
+    result = tools.call("echo", value=payload)
+
+    expected = {
+        "string": "value",
+        "boolean": True,
+        "integer": 7,
+        "float": 1.25,
+        "none": None,
+        "list": (1, "two"),
+        "tuple": (False, 3.5),
+        "dictionary": {"nested": (None,)},
+    }
+    assert result.arguments == {"value": expected}
+    assert result.output == expected
+
+
+def test_tool_result_allows_frozen_arguments_only_for_idempotent_reconstruction() -> None:
+    arguments = FrozenMetadata({"payload": {"amount": 1}})
+
+    result = ToolResult("inspect", arguments, {"ok": True})
+
+    assert result.arguments is arguments
+    assert result.output == {"ok": True}
+
+
+def test_tool_result_rejects_nested_frozen_metadata_arguments() -> None:
+    with pytest.raises(TypeError, match="unsupported tool value type: FrozenMetadata"):
+        ToolResult("inspect", {"payload": FrozenMetadata({"amount": 1})}, None)
+
+
+def test_tool_registry_rejects_nested_frozen_metadata_before_execution() -> None:
+    called = False
+
+    def inspect_payload(payload: object) -> None:
+        nonlocal called
+        called = True
+
+    tools = ToolRegistry()
+    tools.register("inspect_payload", inspect_payload)
+
+    with pytest.raises(TypeError, match="unsupported tool value type: FrozenMetadata"):
+        tools.call("inspect_payload", payload={"nested": FrozenMetadata({"amount": 1})})
+    assert called is False

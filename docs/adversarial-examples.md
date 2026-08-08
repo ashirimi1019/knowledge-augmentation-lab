@@ -44,6 +44,10 @@ When no candidate has a positive retrieval score, evidence and citations are emp
 
 A registered tool whose allowed arguments are `tokens` and `rate` rejects a caller-supplied `secret=` argument. See `test_typed_tool_spec_rejects_unexpected_arguments_before_invocation`.
 
+## Stateful tool mapping is rejected before invocation
+
+A custom `Mapping` can return `amount=1` during audit traversal and `amount=999` when the callable later reads it. `ToolRegistry` rejects that behavior-bearing mapping recursively before the callable runs instead of recording one view and executing another. The same strict boundary rejects nested custom mappings, `defaultdict`, `UserDict`, mapping proxies, and container/scalar subclasses. See `test_tool_registry_rejects_stateful_mapping_before_execution` and the neighboring tool snapshot regressions in `tests/test_augmentation.py`.
+
 **Limit:** allowed argument values are not schema-validated, and tools have no timeout, sandbox, rollback, or caller authorization context.
 
 ## Memory does not cross scopes
