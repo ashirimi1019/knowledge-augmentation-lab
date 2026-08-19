@@ -108,6 +108,18 @@ def test_graph_table_memory_and_tool_pipeline_adapters_are_explicit() -> None:
     )
 
 
+def test_table_pipeline_deepcopies_nested_where_filter() -> None:
+    table = TableStore([{"value": 2, "tags": ["x"]}, {"value": 3, "tags": ["y"]}])
+    where = {"tags": ["x"]}
+    pipeline = TableAugmentedPipeline(table, column="value", operation="sum", where=where)
+
+    first = pipeline.run("q").answer
+    where["tags"].append("y")
+    second = pipeline.run("q").answer
+
+    assert first == second == "sum(value) = 2"
+
+
 def test_graph_pipeline_deduplicates_facts_reached_from_multiple_entities() -> None:
     graph = KnowledgeGraph([("A", "connects", "B"), ("B", "connects", "C")])
 

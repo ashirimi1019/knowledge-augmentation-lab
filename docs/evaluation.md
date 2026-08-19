@@ -64,7 +64,7 @@ The baseline's MRR and nDCG values of `1.0` do not imply perfect retrieval: each
 }
 ```
 
-The strict loader rejects duplicate JSON object names, non-standard `NaN`/infinity constants, unknown/missing fields, non-integer or unsupported schema versions, malformed values, duplicate IDs, empty relevance sets, invalid `k`, and relevance labels that do not reference fixture documents.
+The strict loader rejects duplicate JSON object names, non-standard `NaN`/infinity constants, overflowing numeric literals such as `1e999` that would otherwise parse to infinity, unknown/missing fields, non-integer or unsupported schema versions, malformed values, duplicate IDs, empty relevance sets, invalid `k`, and relevance labels that do not reference fixture documents.
 
 ## Updating a baseline
 

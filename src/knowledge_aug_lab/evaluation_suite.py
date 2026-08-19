@@ -74,6 +74,13 @@ def _reject_json_constant(value: str) -> NoReturn:
     raise ValueError(f"non-standard JSON constant is not allowed: {value}")
 
 
+def _reject_non_finite_number(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"non-finite JSON number is not allowed: {value}")
+    return number
+
+
 def _strict_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
     result: dict[str, object] = {}
     for key, value in pairs:
@@ -90,6 +97,7 @@ def _strict_json_load(handle: IO[str]) -> object:
             handle,
             object_pairs_hook=_strict_json_object,
             parse_constant=_reject_json_constant,
+            parse_float=_reject_non_finite_number,
         ),
     )
 

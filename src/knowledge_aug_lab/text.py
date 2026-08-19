@@ -27,6 +27,8 @@ class RecursiveChunker:
             raise ValueError("chunk_size must be at least 40 characters")
         if overlap < 0 or overlap >= chunk_size:
             raise ValueError("overlap must be non-negative and smaller than chunk_size")
+        if chunk_size - overlap < max(1, chunk_size // 4):
+            raise ValueError("overlap must leave a stride of at least a quarter of chunk_size")
         self.chunk_size = chunk_size
         self.overlap = overlap
 

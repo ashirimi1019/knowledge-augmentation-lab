@@ -22,7 +22,7 @@ class FrozenMetadata(Mapping[str, Any]):
         for key, value in values.items():
             if not isinstance(key, str):
                 raise TypeError("metadata keys must be strings")
-            normalized_key = str(key)
+            normalized_key = str.__str__(key)
             if normalized_key in frozen:
                 raise ValueError(f"metadata keys collide after normalization: {normalized_key!r}")
             frozen[normalized_key] = _freeze_value(value)
@@ -51,6 +51,9 @@ class FrozenMetadata(Mapping[str, Any]):
             return NotImplemented
         other_mapping = cast(Mapping[object, object], other)
         return dict(self.items()) == dict(other_mapping.items())
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self._items))
 
     def _immutable(self, *_args: Any, **_kwargs: Any) -> NoReturn:
         raise TypeError("metadata is immutable")
@@ -284,6 +287,7 @@ class AugmentationResult:
 
         if any(not isinstance(item, str) or not item.strip() for item in citations):
             raise ValueError("citations must be nonempty strings")
+        citations = tuple(str.__str__(item) for item in citations)
         if len(citations) != len(set(citations)):
             raise ValueError("citations must be unique")
         if any(not isinstance(item, Chunk) for item in evidence):

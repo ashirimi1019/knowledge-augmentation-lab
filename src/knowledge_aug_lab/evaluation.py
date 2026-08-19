@@ -93,8 +93,6 @@ def lexical_groundedness(answer: str, context: str, citation_ids: Sequence[str] 
 
 
 def _stem(term: str) -> str:
-    if len(term) > 4 and term.endswith("es"):
-        return term[:-2]
     if len(term) > 3 and term.endswith("s"):
         return term[:-1]
     return term

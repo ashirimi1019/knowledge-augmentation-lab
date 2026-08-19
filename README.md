@@ -152,7 +152,7 @@ Retrieval quality is not answer quality. The lab separates:
 1. **Implemented retriever metrics:** Recall@k, returned-result Precision@k, per-case RR, summary MRR, binary nDCG@k.
 2. **Implemented answer proxy:** lexical groundedness plus deterministic citations/abstention.
 3. **Required for broader claims:** context coverage, correctness/entailment, citation precision/recall, latency/cost, external and adversarial datasets.
-4. **Separately tested security boundaries:** source trust, ACL isolation, immutable metadata, argument allowlists, escaped traces.
+4. **Separately tested security boundaries:** source trust, ACL isolation, immutable metadata, argument allowlists, finite numeric aggregation, bounded input amplification, escaped traces.
 
 See [Evaluation and safety](docs/evaluation-and-safety.md).
 
