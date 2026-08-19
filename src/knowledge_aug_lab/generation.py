@@ -15,6 +15,7 @@ from knowledge_aug_lab.text import tokenize
 
 _SENTENCE_BOUNDARY_RE = re.compile(r"[.!?]\s+")
 _ABBREVIATIONS = ("e.g.", "i.e.", "mr.", "mrs.", "dr.", "vs.")
+_MAX_ABBREVIATION_LENGTH = max(len(abbreviation) for abbreviation in _ABBREVIATIONS) + 1
 _STOPWORDS = {
     "a",
     "an",
@@ -43,14 +44,24 @@ class SentenceCandidate:
     document_id: str
 
 
+def _ends_with_abbreviation(tail: str) -> bool:
+    for abbreviation in _ABBREVIATIONS:
+        if tail == abbreviation:
+            return True
+        if len(tail) > len(abbreviation) and tail.endswith(abbreviation) and tail[-len(abbreviation) - 1].isspace():
+            return True
+    return False
+
+
 def _split_sentences(text: str) -> list[str]:
     sentences: list[str] = []
     start = 0
     for boundary in _SENTENCE_BOUNDARY_RE.finditer(text):
-        candidate = text[start : boundary.start() + 1]
-        if any(candidate.casefold().endswith(abbreviation) for abbreviation in _ABBREVIATIONS):
+        end = boundary.start() + 1
+        tail = text[max(start, end - _MAX_ABBREVIATION_LENGTH) : end].casefold()
+        if _ends_with_abbreviation(tail):
             continue
-        sentences.append(candidate)
+        sentences.append(text[start:end])
         start = boundary.end()
     sentences.append(text[start:])
     return sentences

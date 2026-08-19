@@ -127,3 +127,24 @@ def test_mean_preserves_representable_subnormal_values() -> None:
     value = math.ulp(0.0)
 
     assert TableStore([{"value": value}, {"value": value}]).aggregate("value", "mean").value == value
+
+
+def test_mean_of_large_representable_values_stays_finite() -> None:
+    value = 1e308
+
+    assert TableStore([{"value": value}, {"value": value}]).aggregate("value", "mean").value == value
+
+
+def test_table_result_rejects_non_finite_value_and_invalid_rows_used() -> None:
+    with pytest.raises((TypeError, ValueError), match="value"):
+        TableResult(value=math.nan, rows_used=1, provenance=(0,))
+    with pytest.raises((TypeError, ValueError), match="value"):
+        TableResult(value=True, rows_used=1, provenance=(0,))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="value must be finite"):
+        TableResult(value=10**400, rows_used=1, provenance=(0,))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="rows_used"):
+        TableResult(value=1.0, rows_used=-5, provenance=(0,))
+    with pytest.raises(ValueError, match="rows_used"):
+        TableResult(value=1.0, rows_used=True, provenance=(0,))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="rows_used"):
+        TableResult(value=1.0, rows_used=2, provenance=(0,))

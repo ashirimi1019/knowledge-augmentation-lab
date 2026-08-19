@@ -34,3 +34,7 @@ def test_lexical_groundedness_ignores_only_recognized_citation_markers() -> None
 
     assert lexical_groundedness("Evidence sentence. [source-123]", context, citation_ids=["source-123"]) == 1.0
     assert lexical_groundedness("Evidence sentence. [unsupported]", context, citation_ids=["source-123"]) < 1.0
+
+
+def test_lexical_groundedness_unifies_regular_plurals() -> None:
+    assert lexical_groundedness("uses caches", "the system cache uses memory") == 1.0

@@ -418,3 +418,52 @@ def test_augmentation_result_snapshots_each_sequence_before_validation() -> None
     assert result.citations == ("doc",)
     assert result.evidence == (chunk,)
     assert result.trace == (step,)
+
+
+def test_frozen_metadata_is_hashable_with_value_semantics() -> None:
+    left = FrozenMetadata({"a": 1, "nested": {"b": 2}})
+    right = FrozenMetadata({"nested": {"b": 2}, "a": 1})
+
+    assert left == right
+    assert hash(left) == hash(right)
+    assert len({left, right}) == 1
+
+
+def test_frozen_models_are_hashable() -> None:
+    chunk = valid_chunk()
+    step = TraceStep("retrieve", "selected evidence")
+    document = Document("doc", "text", {"scopes": ["public"]})
+    retrieval = RetrievalResult(chunk, 1.0, 1, "bm25")
+    result = AugmentationResult("rag", "answer [doc]", ["doc"], [chunk], [step])
+
+    for value in (chunk, step, document, retrieval, result):
+        assert isinstance(hash(value), int)
+    assert len({chunk, chunk}) == 1
+
+
+def test_metadata_key_uses_real_characters_not_overridden_str() -> None:
+    class RemappingKey(str):
+        def __str__(self) -> str:
+            return "trusted"
+
+    document = Document("doc", "text", {RemappingKey("caption"): True, "scopes": ["public"]})
+
+    assert "caption" in document.metadata
+    assert document.metadata.get("trusted") is None
+    assert filter_authorized_documents([document], {"public"}, trusted_only=True) == []
+
+
+def test_augmentation_result_normalizes_str_subclass_citations() -> None:
+    class FlipString(str):
+        enabled = True
+        __hash__ = str.__hash__
+
+        def __eq__(self, other: object) -> bool:
+            return self.enabled and str.__eq__(self, other)
+
+    chunk = valid_chunk()
+    result = AugmentationResult("rag", "answer [doc]", [FlipString("doc")], [chunk], [])
+
+    FlipString.enabled = False
+    assert type(result.citations[0]) is str
+    assert result.citations[0] in {evidence.document_id for evidence in result.evidence}

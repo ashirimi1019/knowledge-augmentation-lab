@@ -50,6 +50,26 @@ A custom `Mapping` can return `amount=1` during audit traversal and `amount=999`
 
 **Limit:** allowed argument values are not schema-validated, and tools have no timeout, sandbox, rollback, or caller authorization context.
 
+## Overflowing evaluation number fails closed
+
+```python
+# a fixture or baseline containing {"mean_ndcg_at_k": 1e999}
+```
+
+The strict JSON loader rejects overflowing numeric literals instead of silently parsing them to infinity, matching its existing rejection of `NaN`/`Infinity` tokens. See `test_evaluation_baseline_rejects_overflowing_float_literal`.
+
+**Limit:** this guards evaluation-artifact integrity only; it is not a general untrusted-JSON sandbox.
+
+## Output-amplifying chunk overlap is rejected
+
+```python
+RecursiveChunker(chunk_size=40, overlap=39)
+```
+
+An overlap that leaves a stride smaller than a quarter of `chunk_size` is rejected at construction, bounding worst-case chunk-count and CPU growth to linear in input length. See `test_chunker_rejects_overlap_that_amplifies_output`.
+
+**Limit:** the guard bounds the amplification factor, not absolute input size; primitives still accept arbitrarily large caller text.
+
 ## Memory does not cross scopes
 
 Facts stored under one normalized scope are never returned to another scope. See `test_property_memory_recall_never_crosses_scopes`.

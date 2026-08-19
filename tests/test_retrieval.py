@@ -34,6 +34,11 @@ def test_document_to_ranked_context_is_end_to_end() -> None:
     assert results[0].rank == 1
 
 
+def test_chunker_rejects_overlap_that_amplifies_output() -> None:
+    with pytest.raises(ValueError, match="stride"):
+        RecursiveChunker(chunk_size=40, overlap=39)
+
+
 def test_chunk_spans_match_trimmed_text_exactly() -> None:
     document = Document("spans", "  Grounded evidence.  ")
 

@@ -1,6 +1,8 @@
+import time
+
 import pytest
 
-from knowledge_aug_lab.generation import ExtractiveGenerator, SentenceCandidate
+from knowledge_aug_lab.generation import ExtractiveGenerator, SentenceCandidate, _split_sentences
 from knowledge_aug_lab.models import Chunk
 
 
@@ -74,6 +76,23 @@ def test_abbreviations_remain_attached_to_their_sentence() -> None:
 
     assert answer == "RAG uses evidence, e.g. retrieved passages. [rag]"
     assert citations == ["rag"]
+
+
+def test_split_does_not_treat_word_suffix_as_abbreviation() -> None:
+    assert _split_sentences("The subnet is a cidr. It spans two zones.") == [
+        "The subnet is a cidr.",
+        "It spans two zones.",
+    ]
+
+
+def test_split_sentences_scales_linearly_on_abbreviation_dense_text() -> None:
+    text = "e.g. " * 100_000
+
+    start = time.perf_counter()
+    _split_sentences(text)
+    elapsed = time.perf_counter() - start
+
+    assert elapsed < 2.0
 
 
 def test_generator_preserves_nul_characters_in_source_evidence() -> None:

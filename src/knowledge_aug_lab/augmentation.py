@@ -53,6 +53,18 @@ class TableResult:
             raise ValueError("provenance must contain nonnegative integer row indices")
         if len(provenance) != len(set(provenance)):
             raise ValueError("provenance row indices must be unique")
+        if isinstance(self.value, bool) or not isinstance(self.value, Real):
+            raise TypeError("value must be numeric")
+        try:
+            resolved_value = float(self.value)
+        except OverflowError as exc:
+            raise ValueError("value must be finite") from exc
+        if not math.isfinite(resolved_value):
+            raise ValueError("value must be finite")
+        if isinstance(self.rows_used, bool) or not isinstance(self.rows_used, int) or self.rows_used < 1:
+            raise ValueError("rows_used must be a positive integer")
+        if self.rows_used != len(provenance):
+            raise ValueError("rows_used must equal the number of provenance row indices")
         object.__setattr__(self, "provenance", provenance)
 
 
@@ -120,7 +132,7 @@ class TableStore:
                 result = math.fsum(numeric)
             elif operation == "mean":
                 scale = max(abs(value) for value in numeric)
-                result = 0.0 if scale == 0 else scale * math.fsum(value / scale for value in numeric) / len(numeric)
+                result = 0.0 if scale == 0 else scale * (math.fsum(value / scale for value in numeric) / len(numeric))
             elif operation == "min":
                 result = min(numeric)
             else:

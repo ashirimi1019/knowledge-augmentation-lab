@@ -226,6 +226,14 @@ def test_evaluation_json_rejects_nonstandard_numeric_constants(tmp_path, constan
         load_evaluation_fixture(path)
 
 
+def test_evaluation_baseline_rejects_overflowing_float_literal(tmp_path) -> None:
+    path = tmp_path / "overflow.json"
+    path.write_text('{"summary": {"mean_ndcg_at_k": 1e999}}', encoding="utf-8")
+
+    with pytest.raises(ValueError, match="non-finite JSON number"):
+        load_evaluation_baseline(path)
+
+
 def test_evaluation_json_rejects_duplicate_object_names(tmp_path) -> None:
     path = tmp_path / "duplicate.json"
     path.write_text('{"schema_version": 1, "schema_version": 1}', encoding="utf-8")

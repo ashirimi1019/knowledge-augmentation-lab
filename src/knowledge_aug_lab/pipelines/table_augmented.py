@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 from knowledge_aug_lab.augmentation import TableStore
@@ -22,7 +23,7 @@ class TableAugmentedPipeline:
         self.table = table
         self.column = column
         self.operation = operation
-        self.where = dict(where) if where is not None else None
+        self.where = deepcopy(where) if where is not None else None
 
     def run(self, query: str, top_k: int = 3) -> AugmentationResult:
         validate_run_inputs(query, top_k)
